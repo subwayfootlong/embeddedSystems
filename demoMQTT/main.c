@@ -5,7 +5,7 @@
 #include "secrets.h"
 #include "lwip/netif.h"
 #include "lwip/ip4_addr.h"
-
+//test
 // Callback for incoming MQTT messages
 void mqtt_message_received(const char* topic, const char* payload, uint16_t payload_len) {
     printf("Message received: %.*s\n", payload_len, payload);
