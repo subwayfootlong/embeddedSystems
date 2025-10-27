@@ -4,6 +4,7 @@
 #include "wifi_driver.h"
 #include "mqtt_driver.h"
 #include "sd_driver.h"
+#include "timestamp_driver.h"
 #include "secrets.h"
 #include "lwip/netif.h"
 #include "lwip/ip4_addr.h"
@@ -11,44 +12,17 @@
 // Global SD card manager instance
 SD_Manager sd_mgr;
 
-// Global variable to store initial timestamp
-static uint64_t initial_pc_timestamp = 0;
-static bool timestamp_received = false;
-
 // Callback for incoming MQTT messages
 void mqtt_message_received(const char* topic, const char* payload, uint16_t payload_len) {
     // Debug: Print out every received message
     printf("Received message on topic: %s, payload length: %u\n", topic, payload_len);
     
-    // Timestamp synchronization response
-    if (strcmp(topic, TOPIC_TIMESTAMP_REPLY) == 0 && !timestamp_received) {
-        // Ensure payload is null-terminated for safe string operations
-        char raw_payload[32];
-        memset(raw_payload, 0, sizeof(raw_payload));
-        memcpy(raw_payload, payload, payload_len);
-        printf("Raw timestamp payload: %s\n", raw_payload);
-
-        // Convert payload to uint64_t
-        char* endptr;
-        initial_pc_timestamp = strtoull(raw_payload, &endptr, 10);
-        
-        // Check if conversion was successful
-        if (endptr != raw_payload) {
-            timestamp_received = true;
-            
-            // Unsubscribe from timestamp reply topic
-            mqtt_unsubscribe_topic(TOPIC_TIMESTAMP_REPLY);
-            
-            printf("Timestamp synchronized successfully: %llu\n", initial_pc_timestamp);
-            return;
-        } else {
-            printf("Failed to parse timestamp: %s\n", raw_payload);
-        }
-    }
+    // Timestamp synchronization handler
+    timestamp_mqtt_handler(topic, payload, payload_len);
     
     // Process sensor data (with synchronized timestamp)
     if (strcmp(topic, TOPIC_PUBLISH) == 0) {
-        if (!timestamp_received) {
+        if (!timestamp_is_synchronized()) {
             printf("Warning: No timestamp received yet\n");
             return;
         }
@@ -58,9 +32,8 @@ void mqtt_message_received(const char* topic, const char* payload, uint16_t payl
         memcpy(message, payload, payload_len);
         message[payload_len] = '\0';
         
-        // Calculate current timestamp
-        uint64_t local_uptime = to_us_since_boot(get_absolute_time()) / 1000;
-        uint64_t current_timestamp = initial_pc_timestamp + local_uptime;
+        // Get synchronized timestamp
+        uint64_t current_timestamp = timestamp_get_synced_time();
         
         // Log message to console
         printf("Message received on %s: %.*s\n", topic, payload_len, payload);
@@ -128,26 +101,20 @@ int main() {
     // Step 3: Timestamp Synchronization
     printf("\n5. Requesting timestamp synchronization...\n");
     
-    // Subscribe to the timestamp reply topic FIRST
-    if (mqtt_subscribe_topic(TOPIC_TIMESTAMP_REPLY, 0) != MQTT_OK) {
-        printf("Failed to subscribe to timestamp reply topic\n");
-        return -1;
-    }
-
-    // Publish a timestamp request
-    if (mqtt_publish_message(TOPIC_TIMESTAMP_REQUEST, "request", 0, false) != MQTT_OK) {
-        printf("Failed to publish timestamp request\n");
+    // Initialize timestamp synchronization
+    if (!timestamp_init(TOPIC_TIMESTAMP_REQUEST, TOPIC_TIMESTAMP_REPLY)) {
+        printf("Timestamp synchronization initialization failed\n");
         return -1;
     }
 
     // Wait for timestamp with timeout
     timeout = 30;  // Increased timeout to 30 seconds
-    while (!timestamp_received && timeout > 0) {
+    while (!timestamp_is_synchronized() && timeout > 0) {
         sleep_ms(1000);
         timeout--;
     }
 
-    if (!timestamp_received) {
+    if (!timestamp_is_synchronized()) {
         printf("Timestamp synchronization failed\n");
         return -1;
     }

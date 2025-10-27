@@ -15,6 +15,7 @@ add_executable(LutfiPicoServer
     mqtt_driver.c
     sd_driver.c
     hw_config.c
+    timestamp_driver.c
 )
 
 pico_add_extra_outputs(LutfiPicoServer)
