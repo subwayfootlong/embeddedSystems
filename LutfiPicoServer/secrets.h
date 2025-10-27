@@ -14,5 +14,8 @@
 #define TOPIC_PUBLISH "test/publish"
 #define TOPIC_SUBSCRIBE "test/subscribe"
 
+// Timestamp synchronization topics
+#define TOPIC_TIMESTAMP_REQUEST "pc/timestamp/request"
+#define TOPIC_TIMESTAMP_REPLY "pc/timestamp/reply"
 
 #endif
