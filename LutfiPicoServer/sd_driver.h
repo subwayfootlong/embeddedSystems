@@ -1,5 +1,5 @@
-#ifndef FUNCTIONS_H
-#define FUNCTIONS_H
+#ifndef SD_DRIVER_H 
+#define SD_DRIVER_H
 
 #include <stdbool.h>
 #include "ff.h"

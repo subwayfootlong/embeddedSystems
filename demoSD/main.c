@@ -1,6 +1,6 @@
 #include <stdio.h>
 #include "pico/stdlib.h"
-#include "functions.h"
+#include "sd_driver.h"
 
 // GPIO pin numbers for buttons
 #define BTN_GP20 20

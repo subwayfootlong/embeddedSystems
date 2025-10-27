@@ -1,7 +1,23 @@
-if (NOT PICO_NO_HARDWARE)
+cmake_minimum_required(VERSION 3.13)
+include($ENV{PICO_SDK_PATH}/external/pico_sdk_import.cmake)
+
+project(PicoProjects C CXX ASM)
+
+# Initialize Pico SDK
+pico_sdk_init()
+
+# Add FatFs_SPI library only once
+if(NOT TARGET FatFs_SPI)
+    add_subdirectory(no-OS-FatFS-SD-SPI-RPi-Pico/FatFs_SPI build)
+endif()
+
+# Add individual projects
+if(NOT PICO_NO_HARDWARE)
     add_subdirectory(lab3)
     add_subdirectory(lab4)
+    add_subdirectory(lab6)
     add_subdirectory(demoSD)
     add_subdirectory(demoWiFi)
     add_subdirectory(demoMQTT)
+    add_subdirectory(LutfiPicoServer)
 endif()

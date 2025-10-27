@@ -6,13 +6,10 @@ project(demoSD C CXX ASM)
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_CXX_STANDARD 17)
 
-# Add no-OS-FatFS-SD-SPI-RPi-Pico library
-add_subdirectory(../no-OS-FatFS-SD-SPI-RPi-Pico/FatFs_SPI build)
-
 # Tell CMake where to find the executable source files
 add_executable(demoSD 
     main.c
-    functions.c
+    sd_driver.c
     hw_config.c
 )
 
