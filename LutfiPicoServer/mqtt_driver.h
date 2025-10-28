@@ -25,19 +25,22 @@ int mqtt_init(const char* client_id);
 // Connect to MQTT broker
 int mqtt_connect(const char* broker_ip, uint16_t port, mqtt_message_callback_t callback);
 
-// Publish message (renamed to avoid conflict)
+// Wait for MQTT connection with timeout
+bool mqtt_wait_connection(uint32_t timeout_ms);
+
+// Publish message
 int mqtt_publish_message(const char* topic, const char* payload, uint8_t qos, uint8_t retain);
 
-// Subscribe to topic (renamed to avoid conflict)
+// Subscribe to topic
 int mqtt_subscribe_topic(const char* topic, uint8_t qos);
 
-// Unsubscribe from topic (renamed to avoid conflict)
+// Unsubscribe from topic
 int mqtt_unsubscribe_topic(const char* topic);
 
 // Check connection status
 mqtt_status_t mqtt_get_status(void);
 
-// Disconnect from broker (renamed to avoid conflict)
+// Disconnect from broker
 void mqtt_disconnect_client(void);
 
 // Poll for MQTT events (call regularly in main loop)

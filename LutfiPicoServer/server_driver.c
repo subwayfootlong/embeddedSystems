@@ -13,39 +13,57 @@
 // Global SD card manager instance
 SD_Manager sd_mgr;
 
-// Integrated message handler
+// Sensor data handler (extracted from main message handler)
+static void handle_sensor_data(const char* topic, const char* payload, uint16_t payload_len) {
+    if (!timestamp_is_synchronized()) {
+        printf("Warning: No timestamp received yet\n");
+        return;
+    }
+
+    // Safe buffer with bounds checking
+    char message[256];
+    if (payload_len >= sizeof(message)) {
+        printf("Payload too large: %u bytes\n", payload_len);
+        return;
+    }
+    
+    memcpy(message, payload, payload_len);
+    message[payload_len] = '\0';
+    
+    // Get synchronized timestamp
+    uint64_t current_timestamp = timestamp_get_synced_time();
+    
+    // Log message to console
+    printf("Sensor data received: %s\n", message);
+    
+    // Prepare CSV entry with timestamp
+    char csv_entry[256];
+    snprintf(csv_entry, sizeof(csv_entry), "%llu,%s\n", current_timestamp, message);
+    
+    // Append message to CSV file on SD card
+    sd_write_data(&sd_mgr, "sensor_log.csv", csv_entry, true);
+}
+
+// Integrated message handler - now acts as a router
 void server_message_handler(const char* topic, const char* payload, uint16_t payload_len) {
     // Debug: Print out every received message
     printf("Received message on topic: %s, payload length: %u\n", topic, payload_len);
     
-    // Timestamp synchronization handler
-    timestamp_mqtt_handler(topic, payload, payload_len);
-    
-    // Process sensor data (with synchronized timestamp)
-    if (strcmp(topic, TOPIC_PUBLISH) == 0) {
-        if (!timestamp_is_synchronized()) {
-            printf("Warning: No timestamp received yet\n");
-            return;
-        }
-
-        // Ensure payload is null-terminated for safe string operations
-        char message[payload_len + 1];
-        memcpy(message, payload, payload_len);
-        message[payload_len] = '\0';
-        
-        // Get synchronized timestamp
-        uint64_t current_timestamp = timestamp_get_synced_time();
-        
-        // Log message to console
-        printf("Message received on %s: %.*s\n", topic, payload_len, payload);
-        
-        // Prepare CSV entry with timestamp
-        char csv_entry[256];
-        snprintf(csv_entry, sizeof(csv_entry), "%llu,%s\n", current_timestamp, message);
-        
-        // Append message to CSV file on SD card
-        sd_write_data(&sd_mgr, "sensor_log.csv", csv_entry, true);
+    // Route messages to appropriate handlers
+    if (strcmp(topic, TOPIC_TIMESTAMP_REPLY) == 0) {
+        timestamp_mqtt_handler(topic, payload, payload_len);
+    } else if (strcmp(topic, TOPIC_PUBLISH) == 0) {
+        handle_sensor_data(topic, payload, payload_len);
+    } else {
+        printf("Unknown topic: %s\n", topic);
     }
+}
+
+// Check if all system components are ready
+static bool is_system_ready(void) {
+    return (wifi_is_connected() && 
+            mqtt_get_status() == MQTT_STATUS_CONNECTED &&
+            timestamp_is_synchronized());
 }
 
 // Initialize server components
@@ -63,8 +81,10 @@ int server_init(void) {
         return -1;
     }
    
-    // Write CSV header (optional)
-    sd_write_data(&sd_mgr, "sensor_log.csv", "timestamp,sensor_data\n", false);
+    // Initialize CSV log file with header
+    if (!sd_init_csv_log(&sd_mgr, "sensor_log.csv")) {
+        printf("Warning: Failed to initialize CSV log file\n");
+    }
    
     // Step 2: Network Connection
     // Initialize & connect WiFi
@@ -86,14 +106,8 @@ int server_init(void) {
         return -1;
     }
    
-    // Wait for connection
-    int timeout = 10;
-    while (mqtt_get_status() != MQTT_STATUS_CONNECTED && timeout > 0) {
-        sleep_ms(1000);
-        timeout--;
-    }
-   
-    if (mqtt_get_status() != MQTT_STATUS_CONNECTED) {
+    // Wait for connection using new helper function
+    if (!mqtt_wait_connection(10000)) {
         printf("MQTT connection timeout\n");
         return -1;
     }
@@ -109,15 +123,15 @@ int server_init(void) {
         return -1;
     }
 
-    // Wait for timestamp with timeout
-    timeout = 30;  // Increased timeout to 30 seconds
-    while (!timestamp_is_synchronized() && timeout > 0) {
-        sleep_ms(1000);
-        timeout--;
+    // Request sync and wait
+    if (!timestamp_request_sync()) {
+        printf("Failed to request timestamp synchronization\n");
+        return -1;
     }
 
-    if (!timestamp_is_synchronized()) {
-        printf("Timestamp synchronization failed\n");
+    // Wait for timestamp with timeout
+    if (!timestamp_wait_sync(30000)) {
+        printf("Timestamp synchronization failed - timeout\n");
         return -1;
     }
 
@@ -129,6 +143,10 @@ int server_init(void) {
 
     // Step 5: Final initialization message
     printf("\n6. Server initialized and ready.\n");
+    printf("System status: WiFi=%s, MQTT=%s, Timestamp=%s\n",
+           wifi_is_connected() ? "Connected" : "Disconnected",
+           mqtt_get_status() == MQTT_STATUS_CONNECTED ? "Connected" : "Disconnected",
+           timestamp_is_synchronized() ? "Synced" : "Not Synced");
 
     return 0;
 }

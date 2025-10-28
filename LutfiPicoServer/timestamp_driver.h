@@ -6,6 +6,8 @@
 
 // Timestamp synchronization function prototypes
 bool timestamp_init(const char* request_topic, const char* reply_topic);
+bool timestamp_request_sync(void);
+bool timestamp_wait_sync(uint32_t timeout_ms);
 bool timestamp_is_synchronized(void);
 uint64_t timestamp_get_synced_time(void);
 void timestamp_reset_sync(void);

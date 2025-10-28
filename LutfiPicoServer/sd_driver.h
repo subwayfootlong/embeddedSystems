@@ -19,6 +19,12 @@ typedef struct {
 bool sd_init(SD_Manager *sd);
 
 /**
+ * Initialize CSV log file with header
+ * Returns true on success, false on failure
+ */
+bool sd_init_csv_log(SD_Manager *sd, const char *filename);
+
+/**
  * Read and print a file from the SD card
  * filename: name of file to read (e.g., "read.txt")
  * Returns true on success, false on failure
@@ -39,4 +45,4 @@ bool sd_write_data(SD_Manager *sd, const char *filename, const char *data, bool 
  */
 void sd_unmount(SD_Manager *sd);
 
-#endif // FUNCTIONS_H
+#endif // SD_DRIVER_H

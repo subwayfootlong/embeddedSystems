@@ -1,6 +1,7 @@
 #include "mqtt_driver.h"
 #include <stdio.h>
 #include <string.h>
+#include "pico/stdlib.h"
 
 // ==========================
 // Global & Static Variables
@@ -222,4 +223,19 @@ void mqtt_disconnect_client(void) {
 
 void mqtt_poll(void) {
     // lwIP handles polling automatically, so this is optional.
+}
+
+// Wait for MQTT connection with timeout
+bool mqtt_wait_connection(uint32_t timeout_ms) {
+    uint32_t start_time = to_ms_since_boot(get_absolute_time());
+    
+    while (mqtt_get_status() == MQTT_STATUS_CONNECTING) {
+        if (to_ms_since_boot(get_absolute_time()) - start_time > timeout_ms) {
+            printf("MQTT connection timeout\n");
+            return false;
+        }
+        sleep_ms(100);
+    }
+    
+    return (mqtt_get_status() == MQTT_STATUS_CONNECTED);
 }

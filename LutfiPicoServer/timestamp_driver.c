@@ -26,12 +26,33 @@ bool timestamp_init(const char* req_topic, const char* rep_topic) {
         return false;
     }
 
-    // Publish timestamp request
+    printf("Timestamp synchronization initialized\n");
+    return true;
+}
+
+// Request timestamp synchronization
+bool timestamp_request_sync(void) {
     if (mqtt_publish_message(request_topic, "request", 0, false) != MQTT_OK) {
         printf("Failed to publish timestamp request\n");
         return false;
     }
+    
+    printf("Timestamp synchronization requested\n");
+    return true;
+}
 
+// Wait for timestamp synchronization with timeout
+bool timestamp_wait_sync(uint32_t timeout_ms) {
+    uint32_t start_time = to_ms_since_boot(get_absolute_time());
+    
+    while (!timestamp_received) {
+        if (to_ms_since_boot(get_absolute_time()) - start_time > timeout_ms) {
+            printf("Timestamp synchronization timeout\n");
+            return false;
+        }
+        sleep_ms(100);
+    }
+    
     return true;
 }
 
@@ -45,6 +66,12 @@ void timestamp_mqtt_handler(const char* topic, const char* payload, uint16_t pay
     // Ensure payload is null-terminated for safe string operations
     char raw_payload[32];
     memset(raw_payload, 0, sizeof(raw_payload));
+    
+    if (payload_len >= sizeof(raw_payload)) {
+        printf("Timestamp payload too long: %u bytes\n", payload_len);
+        return;
+    }
+    
     memcpy(raw_payload, payload, payload_len);
     printf("Raw timestamp payload: %s\n", raw_payload);
 
@@ -56,7 +83,7 @@ void timestamp_mqtt_handler(const char* topic, const char* payload, uint16_t pay
     if (endptr != raw_payload) {
         timestamp_received = true;
         
-        // Unsubscribe from timestamp reply topic
+        // Unsubscribe from timestamp reply topic since we only need it once
         mqtt_unsubscribe_topic(reply_topic);
         
         printf("Timestamp synchronized successfully: %llu\n", initial_pc_timestamp);
@@ -76,7 +103,7 @@ uint64_t timestamp_get_synced_time(void) {
         return 0;
     }
 
-    // Calculate current timestamp
+    // Calculate current timestamp (convert microseconds to milliseconds)
     uint64_t local_uptime = to_us_since_boot(get_absolute_time()) / 1000;
     return initial_pc_timestamp + local_uptime;
 }
@@ -85,4 +112,5 @@ uint64_t timestamp_get_synced_time(void) {
 void timestamp_reset_sync(void) {
     timestamp_received = false;
     initial_pc_timestamp = 0;
+    printf("Timestamp synchronization reset\n");
 }
