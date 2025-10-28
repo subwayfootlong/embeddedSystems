@@ -33,8 +33,8 @@ static void mqtt_incoming_publish_cb(void *arg, const char *topic, u32_t tot_len
     strncpy(last_topic, topic, sizeof(last_topic) - 1);
     last_topic[sizeof(last_topic) - 1] = '\0';
 
-    printf("Incoming publish on topic: %s (length: %lu)\n",
-           topic, (unsigned long)tot_len);
+    // Optional: only print if verbose debugging is needed
+    // printf("Incoming publish on topic: %s (length: %lu)\n", topic, (unsigned long)tot_len);
 }
 
 // ==========================
@@ -49,12 +49,13 @@ static void mqtt_incoming_data_cb(void *arg, const u8_t *data, u16_t len, u8_t f
     memcpy(payload, data, len);
     payload[len] = '\0';
 
+    // Optional: only print if verbose debugging is needed
+    // printf("Received message on topic: %s (payload: %s)\n", last_topic, payload);
+
     // 🔧 Use the stored topic name
     if (user_callback) {
         user_callback(last_topic, payload, len);
     }
-
-    printf("Received: %s (topic: %s)\n", payload, last_topic);
 
     // Clear the topic if this was the last packet in the message
     if (flags & MQTT_DATA_FLAG_LAST) {
@@ -66,10 +67,11 @@ static void mqtt_incoming_data_cb(void *arg, const u8_t *data, u16_t len, u8_t f
 // Subscribe Callback
 // ==========================
 static void mqtt_sub_request_cb(void *arg, err_t result) {
+    const char* topic = (const char*)arg;
     if (result == ERR_OK) {
-        printf("Subscribe successful\n");
+        printf("Subscribe to %s successful\n", topic);
     } else {
-        printf("Subscribe failed (err=%d)\n", result);
+        printf("Subscribe to %s failed (err=%d)\n", topic, result);
     }
 }
 
@@ -77,10 +79,11 @@ static void mqtt_sub_request_cb(void *arg, err_t result) {
 // Publish Callback
 // ==========================
 static void mqtt_pub_request_cb(void *arg, err_t result) {
+    const char* topic = (const char*)arg;
     if (result == ERR_OK) {
-        printf("Publish successful\n");
+        printf("Publish to %s successful\n", topic);
     } else {
-        printf("Publish failed (err=%d)\n", result);
+        printf("Publish to %s failed (err=%d)\n", topic, result);
     }
 }
 
@@ -163,7 +166,7 @@ int mqtt_publish_message(const char* topic, const char* payload, uint8_t qos, ui
                              qos,
                              retain,
                              mqtt_pub_request_cb,
-                             NULL);
+                             (void*)topic);
 
     if (err != ERR_OK) {
         printf("MQTT publish failed (err=%d)\n", err);
@@ -182,13 +185,12 @@ int mqtt_subscribe_topic(const char* topic, uint8_t qos) {
         return MQTT_ERROR;
     }
 
-    err_t err = mqtt_subscribe(mqtt_client, topic, qos, mqtt_sub_request_cb, NULL);
+    err_t err = mqtt_subscribe(mqtt_client, topic, qos, mqtt_sub_request_cb, (void*)topic);
     if (err != ERR_OK) {
         printf("MQTT subscribe failed (err=%d)\n", err);
         return MQTT_ERROR;
     }
 
-    printf("Subscribing to topic: %s\n", topic);
     return MQTT_OK;
 }
 
@@ -197,7 +199,7 @@ int mqtt_unsubscribe_topic(const char* topic) {
         return MQTT_ERROR;
     }
 
-    err_t err = mqtt_unsubscribe(mqtt_client, topic, mqtt_sub_request_cb, NULL);
+    err_t err = mqtt_unsubscribe(mqtt_client, topic, mqtt_sub_request_cb, (void*)topic);
     return (err == ERR_OK) ? MQTT_OK : MQTT_ERROR;
 }
 

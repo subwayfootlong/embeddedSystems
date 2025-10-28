@@ -11,6 +11,7 @@ pico_sdk_init()
 
 add_executable(LutfiPicoServer 
     main.c
+    server_driver.c
     wifi_driver.c
     mqtt_driver.c
     sd_driver.c
