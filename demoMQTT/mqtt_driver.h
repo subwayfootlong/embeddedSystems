@@ -43,4 +43,7 @@ void mqtt_disconnect_client(void);
 // Poll for MQTT events (call regularly in main loop)
 void mqtt_poll(void);
 
+// Setup MQTT and connect to broker
+void setup_mqtt(void);
+
 #endif

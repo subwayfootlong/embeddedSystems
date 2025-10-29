@@ -18,4 +18,7 @@ int wifi_connect(const char *ssid, const char *pass, uint32_t timeout_ms);
 // Disconnect WiFi
 void wifi_deinit(void);
 
+// Setup WiFi and connect to network
+void setup_wifi(void);
+
 #endif

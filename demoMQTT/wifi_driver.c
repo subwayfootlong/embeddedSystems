@@ -1,6 +1,9 @@
 #include "wifi_driver.h"
 #include "secrets.h"
 #include <stdio.h>
+#include "pico/stdlib.h"
+#include "lwip/netif.h"
+#include "lwip/ip4_addr.h"
 
 bool wifi_is_connected(void) {
     return cyw43_wifi_link_status(&cyw43_state, CYW43_ITF_STA) == CYW43_LINK_UP;
@@ -32,4 +35,20 @@ int wifi_connect(const char *ssid, const char *pass, uint32_t timeout_ms) {
 void wifi_deinit(void) {
     cyw43_arch_deinit();
     printf("Wi-Fi deinitialised\n");
+}
+
+void setup_wifi(void) {
+    printf("\n1. Connecting to WiFi...\n");
+    if (wifi_init() != WIFI_OK) {
+        printf("WiFi init failed\n");
+        return;
+    }
+    if (wifi_connect(WIFI_SSID, WIFI_PASSWORD, 10000) != WIFI_OK) {
+        printf("WiFi connect failed\n");
+        return;
+    }
+
+    // Wait for IP assignment
+    sleep_ms(2000);
+    printf("Pico W IP Address: %s\n", ip4addr_ntoa(netif_ip4_addr(netif_default)));
 }

@@ -1,10 +1,17 @@
 #include "mqtt_driver.h"
+#include "secrets.h"
 #include <stdio.h>
 #include <string.h>
+#include "pico/stdlib.h"
 
 static mqtt_client_t *mqtt_client = NULL;
 static mqtt_status_t mqtt_status = MQTT_STATUS_DISCONNECTED;
 static mqtt_message_callback_t user_callback = NULL;
+
+// Callback for incoming MQTT messages
+void mqtt_message_received(const char* topic, const char* payload, uint16_t payload_len) {
+    printf("Message received: %.*s\n", payload_len, payload);
+}
 
 // MQTT connection callback
 static void mqtt_connection_cb(mqtt_client_t *client, void *arg, mqtt_connection_status_t status) {
@@ -186,4 +193,32 @@ void mqtt_disconnect_client(void) {
 void mqtt_poll(void) {
     // This function can be used for any periodic MQTT maintenance
     // Currently lwIP handles polling internally
+}
+
+void setup_mqtt(void) {
+    printf("\n2. Initializing MQTT...\n");
+    if (mqtt_init(MQTT_CLIENT_ID) != MQTT_OK) {
+        printf("MQTT init failed\n");
+        return;
+    }
+
+    printf("\n3. Connecting to MQTT broker...\n");
+    if (mqtt_connect(MQTT_BROKER_IP, MQTT_BROKER_PORT, mqtt_message_received) != MQTT_OK) {
+        printf("MQTT connect failed\n");
+        return;
+    }
+
+    // Wait for connection
+    int timeout = 10;
+    while (mqtt_get_status() != MQTT_STATUS_CONNECTED && timeout > 0) {
+        sleep_ms(1000);
+        timeout--;
+    }
+
+    if (mqtt_get_status() != MQTT_STATUS_CONNECTED) {
+        printf("MQTT connection timeout\n");
+        return;
+    }
+
+    printf("\n4. MQTT Connected Successfully!\n");
 }
