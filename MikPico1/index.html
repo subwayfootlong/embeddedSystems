@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Pico W Multi-Sensor Chart</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  </head>
+  <body>
+    <h2>Pico W Live Data</h2>
+    <canvas id="chart" width="600" height="300"></canvas>
+    <canvas id="singleChart" width="600" height="200"></canvas>
+
+    <script>
+      const ctx = document.getElementById('chart').getContext('2d');
+      const chart = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: [],
+          datasets: [
+            { label: 'Temperature (°C)', data: [], borderColor: 'red', borderWidth: 2 },
+            { label: 'Humidity (%)',     data: [], borderColor: 'blue', borderWidth: 2 },
+            { label: 'Light Level',      data: [], borderColor: 'green', borderWidth: 2 }
+          ]
+        },
+        options: {
+          responsive: true,
+          scales: {
+            x: { title: { display: true, text: 'Time' } },
+            y: { beginAtZero: false }
+          }
+        }
+      });
+
+      const singleCtx = document.getElementById('singleChart').getContext('2d');
+      const singleChart = new Chart(singleCtx, {
+        type: 'line',
+        data: {
+          labels: [],
+          datasets: [
+            { label: 'CO₂ (PPM)', data: [], borderColor: 'orange', borderWidth: 2 }
+          ]
+        },
+        options: {
+          responsive: true,
+          scales: {
+            x: { title: { display: true, text: 'Time' } },
+            y: { beginAtZero: false }
+          }
+        }
+      });
+
+      async function fetchData() {
+        const res = await fetch('/data');
+        const d = await res.json();
+
+        // Update labels and datasets
+        chart.data.labels.push(d.time);
+        chart.data.datasets[0].data.push(d.temp);
+        chart.data.datasets[1].data.push(d.humidity);
+        chart.data.datasets[2].data.push(d.light);
+        singleChart.data.labels.push(d.time);
+        singleChart.data.datasets[0].data.push(d.acd);
+
+        if (chart.data.labels.length > 30) {
+          chart.data.labels.shift();
+          chart.data.datasets.forEach(ds => ds.data.shift());
+        }
+        if (singleChart.data.labels.length > 30) {
+          singleChart.data.labels.shift();
+          singleChart.data.datasets[0].data.shift();
+        }
+        chart.update();
+        singleChart.update();
+      }
+
+      setInterval(fetchData, 1000);
+    </script>
+  </body>
+</html>
