@@ -13,7 +13,7 @@ add_executable(demomq2
 
 pico_add_extra_outputs(demomq2)
 
-target_link_libraries(demomq2 pico_stdlib pico_time hardware_adc hardware_gpio m)
+target_link_libraries(demomq2 pico_stdlib hardware_adc hardware_gpio hardware_timer m)
 
 # Enable USB serial
 pico_enable_stdio_usb(demomq2 1)

@@ -72,12 +72,13 @@ int mq2_sample(float *ppm_out, float *voltage_out)
     }
 
     uint16_t raw = adc_read();
-    if (raw == 0 || raw >= 4095) {
+    if (raw == 0 || raw > 4095) {
         return MQ2_ERR_HW;
     }
-
-    const float kAdcScale = VCC_ADC_VOLTAGE / 4096.0f;
-    float voltage = raw * kAdcScale;
+    
+    const float V_REF = 3.3f;   // Pico ADC reference voltage
+    const float kAdcMax = 4095.0f;
+    float voltage = raw * (V_REF / kAdcMax);
 
     float rs_ohm = ((VCC_ADC_VOLTAGE / voltage) - 1.0f) * RL_OHM;
     float rs_ro_ratio = rs_ohm / R0_CLEAN_AIR_OHM;

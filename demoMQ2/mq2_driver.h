@@ -4,11 +4,11 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-#define VCC_ADC_VOLTAGE (3.3f)
+#define VCC_ADC_VOLTAGE (5.0f)
 #define RL_OHM (10000.0f) 
-#define R0_CLEAN_AIR_OHM (30000.0f) // placeholder
-#define LPG_SLOPE (-0.5f)
-#define LPG_INTERCEPT (1.15f)
+#define R0_CLEAN_AIR_OHM (168571.0f) // (5.0/0.28 - 1) * 10000
+#define LPG_SLOPE (-0.4500f)
+#define LPG_INTERCEPT (0.4500f)
 
 /**
  * @brief Error codes for MQ2 sensor driver
