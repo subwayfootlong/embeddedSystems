@@ -34,5 +34,7 @@ int mq2_init(const Mq2Config *cfg);
 int mq2_warmup();
 bool mq2_ready();
 int mq2_sample(float *ppm_out, float *voltage_out);
+int mq2_start();
+void mq2_loop();
 
 #endif /* MQ2_FUNCTIONS_H */
