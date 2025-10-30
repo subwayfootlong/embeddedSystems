@@ -38,8 +38,9 @@ static void handle_sensor_data(const char* topic, const char* payload, uint16_t 
     printf("Sensor data received: %s\n", message);
 
     char csv_entry[256];
-    snprintf(csv_entry, sizeof(csv_entry), "%llu,%s\n", current_timestamp, message);
+    snprintf(csv_entry, sizeof(csv_entry),"%llu,%s,%s\n", current_timestamp, topic, message);
     sd_write_data(&sd_mgr, "sensor_log.csv", csv_entry, true);
+
 }
 
 /* ==========================================================
@@ -49,12 +50,13 @@ static void pico3_message_handler(const char* topic, const char* payload, uint16
     printf("Received message on topic: %s, length: %u\n", topic, payload_len);
 
     if (strcmp(topic, TOPIC_TIMESTAMP_REPLY) == 0) {
-        timestamp_mqtt_handler(topic, payload, payload_len);
-    } else if (strcmp(topic, TOPIC_PUBLISH) == 0) {
+    timestamp_mqtt_handler(topic, payload, payload_len);
+    } else if (strcmp(topic, TOPIC_PICO1) == 0 || strcmp(topic, TOPIC_PICO2) == 0) {
         handle_sensor_data(topic, payload, payload_len);
     } else {
         printf("Unknown topic: %s\n", topic);
     }
+
 }
 
 /* ==========================================================
@@ -126,10 +128,16 @@ int pico3_driver_init(void) {
     }
 
     /* --- Step 5: MQTT subscriptions --- */
-    if (mqtt_subscribe_topic(TOPIC_PUBLISH, 0) != MQTT_OK) {
-        printf("Failed to subscribe to sensor topic\n");
+    printf("\nSubscribing to sensor topics...\n");
+    if (mqtt_subscribe_topic(TOPIC_PICO1, 0) != MQTT_OK) {
+        printf("Failed to subscribe to %s\n", TOPIC_PICO1);
         return -1;
     }
+    if (mqtt_subscribe_topic(TOPIC_PICO2, 0) != MQTT_OK) {
+        printf("Failed to subscribe to %s\n", TOPIC_PICO2);
+        return -1;
+    }
+
 
     printf("\n6. System initialized and ready.\n");
     printf("Status: WiFi=%s, MQTT=%s, Timestamp=%s\n",
@@ -140,13 +148,6 @@ int pico3_driver_init(void) {
     /* --- Step 6: Start HTTP server --- */
     printf("\n7. Starting HTTP server...\n");
     http_server_driver_start(&sd_mgr);
-
-    printf("HTTP server ready. Visit http://<pico_ip>/\n");
-
-    /* --- Step 7: Loop --- */
-    while (true) {
-        sleep_ms(5000);
-    }
 
     return 0;
 }

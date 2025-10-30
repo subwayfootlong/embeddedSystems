@@ -28,40 +28,34 @@ static const char *read_csv(char *buf, size_t maxlen) {
    Static HTML dashboard page
    ========================================================== */
 static const char html_index[] =
-"<!DOCTYPE html><html><head><title>Pico Logger</title>"
+"<!DOCTYPE html><html><head><title>Pico Dashboard</title>"
 "<meta name='viewport' content='width=device-width,initial-scale=1'>"
-"<script src='https://cdn.jsdelivr.net/npm/chart.js'></script>"
 "<style>"
-"body{font-family:sans-serif;margin:2em;background:#f5f5f5;}"
-"canvas{max-width:100%;height:400px;background:#fff;border-radius:8px;}"
-"button{padding:.5em 1em;margin-top:1em;}"
-"</style>"
-"</head><body>"
-"<h2>Pico Data Logger Dashboard</h2>"
-"<canvas id='chart'></canvas>"
+"body{font-family:sans-serif;margin:2em;background:#f5f5f5;color:#222;}"
+"h2{color:#007acc;}table{border-collapse:collapse;width:100%;margin-bottom:2em;background:#fff;}"
+"th,td{border:1px solid #ccc;padding:4px;text-align:left;}th{background:#eee;}"
+"button{padding:.5em 1em;margin-bottom:1em;}"
+"</style></head><body>"
+"<h2>Pico Sensor Dashboard</h2>"
 "<button onclick='refresh()'>Refresh</button>"
+"<div id='tables'>Loading...</div>"
 "<script>"
-"let chart;"
 "async function refresh(){"
-"  const r=await fetch('/data');"
-"  const text=await r.text();"
-"  const lines=text.trim().split('\\n').slice(1);" // skip header
-"  const labels=[], values=[];"
-"  for(const line of lines){"
-"    const [ts,val]=line.split(',');"
-"    if(ts && val){"
-"      const date=new Date(Number(ts));"
-"      labels.push(date.toLocaleTimeString());"
-"      values.push(parseFloat(val));"
-"    }"
-"  }"
-"  const data={labels:labels,datasets:[{label:'Sensor Data',data:values,fill:false,borderColor:'blue',tension:0.1}]};"
-"  if(chart){chart.data=data;chart.update();}"
-"  else{chart=new Chart(document.getElementById('chart'),{type:'line',data:data,options:{scales:{y:{beginAtZero:true}}}});}"
-"}"
-"window.onload=refresh;"
-"</script>"
-"</body></html>";
+"const r=await fetch('/data');const t=await r.text();"
+"const lines=t.trim().split('\\n').slice(1);"
+"let p1='',p2='';"
+"for(const l of lines){const [ts,topic,val]=l.split(',');if(!ts||!topic||!val)continue;"
+"const time=new Date(Number(ts)).toLocaleTimeString();"
+"if(topic==='pico1/sensor/data')p1+=`<tr><td>${time}</td><td>${val}</td></tr>`;"
+"else if(topic==='pico2/sensor/data')p2+=`<tr><td>${time}</td><td>${val}</td></tr>`;}"
+"function table(title,rows){return `<h3>${title}</h3><table><tr><th>Time</th><th>Value</th></tr>${rows}</table>`;}"
+"document.getElementById('tables').innerHTML="
+"table('Pico 1 (pico1/sensor/data)',p1)+table('Pico 2 (pico2/sensor/data)',p2);"
+"}window.onload=refresh;"
+"</script></body></html>";
+
+
+
 
 
 /* ==========================================================

@@ -123,5 +123,5 @@ void sd_unmount(SD_Manager *sd) {
 // Initialize CSV log file with header
 bool sd_init_csv_log(SD_Manager *sd, const char *filename) {
     printf("Initializing CSV log file: %s\n", filename);
-    return sd_write_data(sd, filename, "timestamp,sensor_data\n", false);
+    return sd_write_data(sd, filename, "timestamp,topic,sensor_data\n", false);
 }
