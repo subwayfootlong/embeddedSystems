@@ -9,15 +9,18 @@ pico_sdk_init()
 
 # Remove this line: add_subdirectory(../no-OS-FatFS-SD-SPI-RPi-Pico/FatFs_SPI build)
 
-add_executable(LutfiPicoServer 
+add_executable(LutfiPicoServer
     main.c
-    server_driver.c
+    pico3_driver.c
     wifi_driver.c
     mqtt_driver.c
     sd_driver.c
     hw_config.c
     timestamp_driver.c
+    http_server_driver.c
 )
+
+
 
 pico_add_extra_outputs(LutfiPicoServer)
 
@@ -30,6 +33,7 @@ target_link_libraries(LutfiPicoServer
     pico_stdlib
     pico_cyw43_arch_lwip_threadsafe_background
     pico_lwip_mqtt
+    pico_lwip_http
     hardware_spi
     FatFs_SPI
 )
