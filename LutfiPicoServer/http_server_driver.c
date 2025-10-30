@@ -3,8 +3,6 @@
 #include "ff.h"
 #include <stdio.h>
 #include <string.h>
-#include "pico/time.h"
-
 
 static SD_Manager *g_sd = NULL;
 
@@ -30,35 +28,31 @@ static const char *read_csv(char *buf, size_t maxlen) {
    Static HTML dashboard page
    ========================================================== */
 static const char html_index[] =
-"<!DOCTYPE html><html><head><title>Pico Graph Dashboard</title>"
+"<!DOCTYPE html><html><head><title>Pico Dashboard</title>"
 "<meta name='viewport' content='width=device-width,initial-scale=1'>"
-"<script src='https://cdn.jsdelivr.net/npm/chart.js'></script>"
 "<style>"
-"body{font-family:sans-serif;margin:1em;background:#f5f5f5;}"
-"h2{color:#007acc;}canvas{max-width:100%;height:300px;background:#fff;border-radius:8px;margin-bottom:2em;}"
+"body{font-family:sans-serif;margin:2em;background:#f5f5f5;color:#222;}"
+"h2{color:#007acc;}table{border-collapse:collapse;width:100%;margin-bottom:2em;background:#fff;}"
+"th,td{border:1px solid #ccc;padding:4px;text-align:left;}th{background:#eee;}"
 "button{padding:.5em 1em;margin-bottom:1em;}"
 "</style></head><body>"
-"<h2>Pico Sensor Graphs</h2>"
+"<h2>Pico Sensor Dashboard</h2>"
 "<button onclick='refresh()'>Refresh</button>"
-"<canvas id='chart1'></canvas>"
-"<canvas id='chart2'></canvas>"
+"<div id='tables'>Loading...</div>"
 "<script>"
-"let c1,c2;"
 "async function refresh(){"
 "const r=await fetch('/data');const t=await r.text();"
 "const lines=t.trim().split('\\n').slice(1);"
-"const data1=[],labels1=[],data2=[],labels2=[];"
+"let p1='',p2='';"
 "for(const l of lines){const [ts,topic,val]=l.split(',');if(!ts||!topic||!val)continue;"
 "const time=new Date(Number(ts)).toLocaleTimeString();"
-"if(topic==='pico1/sensor/data'){labels1.push(time);data1.push(parseFloat(val));}"
-"else if(topic==='pico2/sensor/data'){labels2.push(time);data2.push(parseFloat(val));}}"
-"function make(id,labels,data,color,title){return new Chart(document.getElementById(id),{type:'line',data:{labels:labels,datasets:[{label:title,data:data,borderColor:color,fill:false,tension:0.1}]},options:{scales:{y:{beginAtZero:true}}}});}"
-"if(c1){c1.destroy();c2.destroy();}"
-"c1=make('chart1',labels1,data1,'red','Pico 1 - pico1/sensor/data');"
-"c2=make('chart2',labels2,data2,'blue','Pico 2 - pico2/sensor/data');"
+"if(topic==='pico1/sensor/data')p1+=`<tr><td>${time}</td><td>${val}</td></tr>`;"
+"else if(topic==='pico2/sensor/data')p2+=`<tr><td>${time}</td><td>${val}</td></tr>`;}"
+"function table(title,rows){return `<h3>${title}</h3><table><tr><th>Time</th><th>Value</th></tr>${rows}</table>`;}"
+"document.getElementById('tables').innerHTML="
+"table('Pico 1 (pico1/sensor/data)',p1)+table('Pico 2 (pico2/sensor/data)',p2);"
 "}window.onload=refresh;"
 "</script></body></html>";
-
 
 
 
@@ -67,22 +61,12 @@ static const char html_index[] =
 /* ==========================================================
    TCP send-complete callback (ensures graceful close)
    ========================================================== */
-static bool close_timer_callback(alarm_id_t id, void *user_data) {
-    struct tcp_pcb *tpcb = (struct tcp_pcb *)user_data;
-    printf("[timer] closing connection after delay\n");
-    tcp_close(tpcb);
-    return false; // one-shot
-}
-
 static err_t on_sent(void *arg, struct tcp_pcb *tpcb, u16_t len) {
     LWIP_UNUSED_ARG(arg);
-    printf("[on_sent] %u bytes acknowledged, scheduling close\n", len);
-    add_alarm_in_ms(300, close_timer_callback, tpcb, false);
+    LWIP_UNUSED_ARG(len);
+    tcp_close(tpcb);
     return ERR_OK;
 }
-
-
-
 
 /* ==========================================================
    TCP receive callback
@@ -96,43 +80,37 @@ static err_t recv_cb(void *arg, struct tcp_pcb *tpcb, struct pbuf *p, err_t err)
 
     char *req = (char *)p->payload;
     static char buffer[2048];
-    char header[160];
-    const char *body;
-    char content_type[32];
+    char header[128];
 
-    // Determine which page to serve
     if (strncmp(req, "GET /data", 9) == 0) {
-        body = read_csv(buffer, sizeof(buffer));
-        strcpy(content_type, "text/plain");
+        const char *content = read_csv(buffer, sizeof(buffer));
+        snprintf(header, sizeof(header),
+                 "HTTP/1.1 200 OK\r\n"
+                 "Content-Type: text/plain\r\n"
+                 "Content-Length: %u\r\n"
+                 "Connection: close\r\n\r\n",
+                 (unsigned)strlen(content));
+        tcp_write(tpcb, header, strlen(header), TCP_WRITE_FLAG_COPY);
+        tcp_write(tpcb, content, strlen(content), TCP_WRITE_FLAG_COPY);
     } else {
-        body = html_index;
-        strcpy(content_type, "text/html");
+        const char *page = html_index;
+        snprintf(header, sizeof(header),
+                 "HTTP/1.1 200 OK\r\n"
+                 "Content-Type: text/html\r\n"
+                 "Content-Length: %u\r\n"
+                 "Connection: close\r\n\r\n",
+                 (unsigned)strlen(page));
+        tcp_write(tpcb, header, strlen(header), TCP_WRITE_FLAG_COPY);
+        tcp_write(tpcb, page, strlen(page), TCP_WRITE_FLAG_COPY);
     }
 
-    snprintf(header, sizeof(header),
-             "HTTP/1.1 200 OK\r\n"
-             "Content-Type: %s\r\n"
-             "Content-Length: %u\r\n"
-             "Connection: close\r\n\r\n",
-             content_type, (unsigned)strlen(body));
-
-    // Write header + body
-    tcp_write(tpcb, header, strlen(header), TCP_WRITE_FLAG_COPY);
-    tcp_write(tpcb, body, strlen(body), TCP_WRITE_FLAG_COPY);
     tcp_output(tpcb);
-    printf("[recv_cb] queued %u bytes at %u ms\n",
-       (unsigned)strlen(body), (unsigned)to_ms_since_boot(get_absolute_time()));
-
-    // Free received data
     pbuf_free(p);
 
-    // Register send callback and do NOT close yet
+    // Wait until data is sent before closing
     tcp_sent(tpcb, on_sent);
-
-    // Return OK, let on_sent() close once lwIP finishes
     return ERR_OK;
 }
-
 
 /* ==========================================================
    Accept callback (new connection)
