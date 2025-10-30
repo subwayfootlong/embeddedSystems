@@ -4,43 +4,38 @@
 // Common settings used in most of the pico_w examples
 // (see https://www.nongnu.org/lwip/2_1_x/group__lwip__opts.html for details)
 
-// allow override in some examples
+// ----------------------------------------------------
+// Core system configuration
+// ----------------------------------------------------
 #ifndef NO_SYS
 #define NO_SYS                      1
 #endif
-// allow override in some examples
 #ifndef LWIP_SOCKET
 #define LWIP_SOCKET                 0
 #endif
+
 #if PICO_CYW43_ARCH_POLL
 #define MEM_LIBC_MALLOC             1
 #else
-// MEM_LIBC_MALLOC is incompatible with non polling versions
 #define MEM_LIBC_MALLOC             0
 #endif
+
 #define MEM_ALIGNMENT               4
-#define MEM_SIZE                    8000
-#define MEMP_NUM_TCP_SEG            32
+#define MEM_SIZE                    16384     // increased for stability and throughput
+#define MEMP_NUM_TCP_SEG            64        // increased for better send performance
 #define MEMP_NUM_ARP_QUEUE          10
-#define PBUF_POOL_SIZE              24
+#define MEMP_NUM_SYS_TIMEOUT        16
+#define MEMP_NUM_NETBUF             8
+#define MEMP_NUM_NETCONN            8
+#define PBUF_POOL_SIZE              32        // increased to prevent packet drops
+
+// ----------------------------------------------------
+// Protocol enablement
+// ----------------------------------------------------
 #define LWIP_ARP                    1
 #define LWIP_ETHERNET               1
 #define LWIP_ICMP                   1
 #define LWIP_RAW                    1
-#define TCP_WND                     (8 * TCP_MSS)
-#define TCP_MSS                     1460
-#define TCP_SND_BUF                 (8 * TCP_MSS)
-#define TCP_SND_QUEUELEN            ((4 * (TCP_SND_BUF) + (TCP_MSS - 1)) / (TCP_MSS))
-#define LWIP_NETIF_STATUS_CALLBACK  1
-#define LWIP_NETIF_LINK_CALLBACK    1
-#define LWIP_NETIF_HOSTNAME         1
-#define LWIP_NETCONN                0
-#define MEM_STATS                   0
-#define SYS_STATS                   0
-#define MEMP_STATS                  0
-#define LINK_STATS                  0
-// #define ETH_PAD_SIZE                2
-#define LWIP_CHKSUM_ALGORITHM       3
 #define LWIP_DHCP                   1
 #define LWIP_IPV4                   1
 #define LWIP_TCP                    1
@@ -50,19 +45,43 @@
 #define LWIP_NETIF_TX_SINGLE_PBUF   1
 #define DHCP_DOES_ARP_CHECK         0
 #define LWIP_DHCP_DOES_ACD_CHECK    0
+#define LWIP_NETIF_STATUS_CALLBACK  1
+#define LWIP_NETIF_LINK_CALLBACK    1
+#define LWIP_NETIF_HOSTNAME         1
+#define LWIP_NETCONN                0
 
-// ========================================
-// MQTT-specific settings - INCREASED VALUES
-// ========================================
-#define MEMP_NUM_SYS_TIMEOUT        16    // Increased from default (was causing panic)
-#define MEMP_NUM_NETBUF             8     // Increased for MQTT
-#define MEMP_NUM_NETCONN            8     // Increased for MQTT
-#define LWIP_TIMEVAL_PRIVATE        0     // Use system timeval
-#define SO_REUSE                    1     // Allow socket reuse
+// ----------------------------------------------------
+// TCP tuning
+// ----------------------------------------------------
+#define TCP_MSS                     1460
+#define TCP_WND                     (10 * TCP_MSS)
+#define TCP_SND_BUF                 (10 * TCP_MSS)
+#define TCP_SND_QUEUELEN            ((4 * (TCP_SND_BUF) + (TCP_MSS - 1)) / (TCP_MSS))
 
-// MQTT Application settings
-#define LWIP_MQTT                   1     // Enable MQTT
+// ----------------------------------------------------
+// MQTT and socket behavior
+// ----------------------------------------------------
+#define LWIP_TIMEVAL_PRIVATE        0
+#define SO_REUSE                    1
+#define LWIP_MQTT                   1
 
+// ----------------------------------------------------
+// Checksums and statistics
+// ----------------------------------------------------
+#define LWIP_CHKSUM_ALGORITHM       3
+#define MEM_STATS                   0
+#define SYS_STATS                   0
+#define MEMP_STATS                  0
+#define LINK_STATS                  0
+
+// Uncomment for debugging memory usage
+// #define MEM_STATS                   1
+// #define MEMP_STATS                  1
+// #define LWIP_STATS_DISPLAY          1
+
+// ----------------------------------------------------
+// Debug configuration
+// ----------------------------------------------------
 #ifndef NDEBUG
 #define LWIP_DEBUG                  1
 #define LWIP_STATS                  1
@@ -98,4 +117,4 @@
 #define SLIP_DEBUG                  LWIP_DBG_OFF
 #define DHCP_DEBUG                  LWIP_DBG_OFF
 
-#endif /* __LWIPOPTS_H__ */
+#endif /* _LWIPOPTS_EXAMPLE_COMMONH_H */
