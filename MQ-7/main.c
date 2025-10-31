@@ -9,7 +9,7 @@ int main() {
 
     mq7_init_adc();
 
-    printf("\nStarting constant 3.3V fast reading cycle (Reading every ~1.5 seconds)...\n");
+    printf("\nStarting constant 5V fast reading cycle (Reading every ~1.5 seconds)...\n");
 
     while (true) {
         mq7_read_and_print_stats(); 
