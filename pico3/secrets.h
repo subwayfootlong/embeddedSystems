@@ -2,8 +2,8 @@
 #define SECRETS_H
 
 // WiFi Credentials
-#define WIFI_SSID "lais14"
-#define WIFI_PASSWORD "deeznuts"
+#define WIFI_SSID "lutfiesp8266"
+#define WIFI_PASSWORD "ilovesit"
 
 // MQTT Broker settings
 #define MQTT_BROKER_IP "172.20.10.8"

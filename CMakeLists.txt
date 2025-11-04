@@ -13,5 +13,5 @@ endif()
 
 # Add individual projects
 if(NOT PICO_NO_HARDWARE)
-    add_subdirectory(LutfiPicoServer)
+    add_subdirectory(pico3)
 endif()
