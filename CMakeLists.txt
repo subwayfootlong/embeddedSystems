@@ -13,5 +13,5 @@ endif()
 
 # Add individual projects
 if(NOT PICO_NO_HARDWARE)
-    add_subdirectory(pico3)
+    add_subdirectory(Pico3)
 endif()
