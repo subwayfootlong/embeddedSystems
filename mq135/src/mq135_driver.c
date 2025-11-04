@@ -29,13 +29,22 @@ static float read_vadc_averaged(void) {
 static float backscale_vs(float vadc) {
     const float rtop = DIVIDER_RTOP_OHMS;
     const float rbot = DIVIDER_RBOT_OHMS;
-    if (rtop == 0.0f && rbot == 1.0f) return vadc;
+    
+    // Logic for no divider: RTOP=0.0f, RBOT=1.0f means Vs = Vadc
+    if (rtop == 0.0f && rbot == 1.0f) {
+        return vadc; 
+    }
+    
+    // Logic for a voltage divider
     return vadc * ((rtop + rbot) / rbot);
 }
 
 static float compute_rs(float vs) {
+    // Input clamping for stability
     if (vs < 0.001f) vs = 0.001f;
     if (vs > SENSOR_SUPPLY_VOLTS - 0.001f) vs = SENSOR_SUPPLY_VOLTS - 0.001f;
+    
+    // Rs calculation uses the 5V supply
     return MQ135_RL_OHMS * (SENSOR_SUPPLY_VOLTS - vs) / vs;
 }
 
@@ -57,12 +66,7 @@ static float calculate_nh3_ppm(float ratio) {
     return clamp_ppm(ppm);
 }
 
-static float calculate_co2_ppm(float ratio) {
-    if (ratio <= 0.0f) ratio = 1e-6f;
-    // Formula: PPM = a * (Rs/R0)^b
-    float ppm = MQ135_CO2_A * powf(ratio, MQ135_CO2_B);
-    return clamp_ppm(ppm);
-}
+// NOTE: calculate_co2_ppm function removed
 
 // ========= Public API Implementation =========
 
@@ -75,22 +79,26 @@ void mq135_read(mq135_reading_t *reading) {
     if (!reading) return;
     
     reading->vadc = read_vadc_averaged();
-    reading->vs = backscale_vs(reading->vadc);
+    reading->vs = backscale_vs(reading->vadc); 
     reading->rs = compute_rs(reading->vs);
     reading->ratio = compute_ratio(reading->rs);
+    
+    // NH3 calculation only
     reading->nh3_ppm = calculate_nh3_ppm(reading->ratio);
+    // reading->co2_ppm = calculate_co2_ppm(reading->ratio); // REMOVED
 }
 
 void mq135_print(const mq135_reading_t *reading) {
     if (!reading) return;
     
+    // Print statement updated to remove CO2 reference
     printf("Vadc=%.3fV | Rs=%.0fΩ | Rs/R0=%.2f | NH3=%.1f ppm\n",
            reading->vadc, reading->rs, reading->ratio, reading->nh3_ppm);
 }
 
 void mq135_print_config(void) {
-    printf("\n=== MQ-135 Ammonia Sensor (5V Power) ===\n");
-    printf("ADC pin=GP%d  Vref=%.2fV  Sensor Vcc=%.2fV  RL=%.0fΩ  R0=%.0fΩ\n",
+    printf("\n=== MQ-135 Sensor (Ammonia Only) ===\n");
+    printf("ADC pin=GP%d  Vref=%.2fV  Sensor Vcc=%.2fV  RL=%.0fΩ  R0=%.0fΩ\n",
            MQ135_ADC_GPIO, ADC_FULL_SCALE_VOLTS, SENSOR_SUPPLY_VOLTS, 
            MQ135_RL_OHMS, MQ135_R0_OHMS);
     
@@ -98,9 +106,9 @@ void mq135_print_config(void) {
         printf("Voltage divider: %.0fkΩ / %.0fkΩ\n", 
                DIVIDER_RTOP_OHMS/1000.0f, DIVIDER_RBOT_OHMS/1000.0f);
     } else {
-        printf("⚠️  WARNING: No voltage divider! Direct connection may damage ADC!\n");
+        printf("⚠️ WARNING: No voltage divider! Direct connection. Max Vout MUST stay < %.2fV!\n", ADC_FULL_SCALE_VOLTS);
     }
     
-    printf("Formula: PPM = %.2f * (Rs/R0)^%.3f\n", MQ135_NH3_A, MQ135_NH3_B);
-    printf("NOTE: Sensor needs 24-48h warm-up for accurate readings.\n\n");
+    printf("NH3 Formula: PPM = %.2f * (Rs/R0)^%.3f\n", MQ135_NH3_A, MQ135_NH3_B);
+    printf("NOTE: Sensor needs 24-48h warm-up for accurate R0 calibration.\n\n");
 }
