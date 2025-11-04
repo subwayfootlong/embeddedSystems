@@ -21,7 +21,7 @@ typedef enum {
     MQ2_ERR_BUSY    = -2,
     MQ2_ERR_HW      = -3,
     MQ2_ERR_NO_INIT = -4
-} Mq2Status;
+} mq2_status;
 
 /**
  * @brief MQ2 sensor configuration
@@ -30,20 +30,20 @@ typedef struct {
     uint8_t     adc_channel;        // ADC channel number (e.g., 0 for GPIO26)
     uint32_t    warmup_ms;          // Warm-up time in milliseconds
     uint32_t    min_interval_ms;    // Minimum time between samples in milliseconds
-} Mq2Config;
+} mq2_config;
 
 typedef struct {
     int status;
     float ppm;
     float voltage;
-} Mq2Reading;
+} mq2_reading;
 
-int mq2_init(const Mq2Config *cfg);
-Mq2Config mq2_get_config();
+int mq2_init(const mq2_config *cfg);
+mq2_config mq2_get_config();
 int mq2_warmup();
 bool mq2_ready();
 int mq2_sample(float *ppm_out, float *voltage_out);
-Mq2Reading mq2_get_payload();
-int mq2_start();
+mq2_reading mq2_get_payload();
+void mq2_start();
 
-#endif /* MQ2_FUNCTIONS_H */
+#endif

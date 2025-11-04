@@ -4,6 +4,8 @@
 #include "mqtt_driver.h"
 #include "secrets.h"
 #include "mq2_driver.h"
+#include "mq7_driver.h"
+#include "mq135_driver.h"
 
 int main(void) {
     stdio_init_all();
@@ -20,9 +22,9 @@ int main(void) {
     mqtt_subscribe_topic(TOPIC_SUBSCRIBE_PICO1, 0);
 
     // Initialize gas sensors
-    if (mq2_start() != MQ2_OK) {
-        return -1;
-    }
+    mq2_start();
+    mq7_init_adc();
+    mq135_start();
     
     uint32_t last_publish_time_ms = 0;
 
@@ -33,10 +35,12 @@ int main(void) {
         const uint32_t sample_interval = mq2_get_config().min_interval_ms;
         
         if (current_time_ms - last_publish_time_ms >= sample_interval) {
-            Mq2Reading mq2 = mq2_get_payload();
+            mq2_reading mq2 = mq2_get_payload();
+            mq7_reading mq7 = mq7_get_payload();
+            mq135_reading_t mq135 = mq135_get_payload();
             
             char payload[128];
-            snprintf(payload, sizeof(payload), "LPG(status)=%d, LPG(ppm)=%.2f, LPG(V)=%.2f", mq2.status, mq2.ppm, mq2.voltage);
+            snprintf(payload, sizeof(payload), "%.2f, %.2f, %.2f", mq2.ppm, mq7.ppm, mq135.ppm);
 
             mqtt_publish_message(TOPIC_PUBLISH_PICO1, payload, 0, 0);
         }

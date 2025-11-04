@@ -10,11 +10,11 @@
  * @brief Internal driver state
  */
 static bool is_initialized = false;
-static Mq2Config config;
+static mq2_config config;
 static absolute_time_t warmup_deadline;
 static absolute_time_t last_sample_time;
 
-int mq2_init(const Mq2Config *cfg)
+int mq2_init(const mq2_config *cfg)
 {
     if (cfg == NULL ||
         cfg->min_interval_ms < 1000 ||
@@ -34,7 +34,7 @@ int mq2_init(const Mq2Config *cfg)
     return MQ2_OK;
 }
 
-Mq2Config mq2_get_config() {
+mq2_config mq2_get_config() {
     return config;
 }
 
@@ -103,9 +103,9 @@ int mq2_sample(float *ppm_out, float *voltage_out)
     return MQ2_OK;
 }
 
-Mq2Reading mq2_get_payload()
+mq2_reading mq2_get_payload()
 {
-    Mq2Reading result;
+    mq2_reading result;
     float ppm = 0.0f;
     float voltage = 0.0f;
     result.status = mq2_sample(&ppm, &voltage);
@@ -129,34 +129,31 @@ Mq2Reading mq2_get_payload()
                 printf("Error: %d\n", result.status);
                 break;
         }
+    } else {
+        printf("MQ2 | ~%.2f ppm | Vadc: %.2f V\n", result.ppm, result.voltage);
     }
     
     return result;
 }
 
-int mq2_start()
+void mq2_start()
 {
-    // Wait for USB serial connection
     while (!stdio_usb_connected()) {
         sleep_ms(100);
     }
 
-    printf("\n=== Pico W MQ2 Gas Sensor Demo ===\n");
+    printf("\n=== Pico W MQ2 Gas Sensor Driver ===\n");
 
-    // Set MQ2 configuration values
-    Mq2Config cfg = {
+    mq2_config cfg = {
         .adc_channel     = 0,
         .warmup_ms       = 20000,
         .min_interval_ms = 1000
     };
 
-    // Initialize MQ2
     if (mq2_init(&cfg) != MQ2_OK) {
         printf("Failed to initialize MQ2 driver.\n");
-        return -1;
     }
 
-    // Initialize MQ2 warmup
     mq2_warmup();
 
     uint32_t elapsed_seconds = cfg.warmup_ms / 1000;
@@ -169,6 +166,5 @@ int mq2_start()
         }
     }
 
-    printf("Warmup complete. Sensor ready.\n");
-    return MQ2_OK;
+    printf("Warmup complete. MQ2 Sensor ready.\n");
 }

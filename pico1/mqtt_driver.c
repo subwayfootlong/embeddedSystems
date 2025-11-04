@@ -86,7 +86,7 @@ int mqtt_connect(const char* broker_ip, uint16_t port, mqtt_message_callback_t c
     // Configure MQTT client info
     struct mqtt_connect_client_info_t ci;
     memset(&ci, 0, sizeof(ci));
-    ci.client_id = "pico_w_client";
+    ci.client_id = MQTT_CLIENT_ID;
     ci.keep_alive = 60;
     ci.will_topic = NULL;
     ci.will_msg = NULL;
