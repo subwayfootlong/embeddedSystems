@@ -10,26 +10,20 @@
 #include <stdbool.h>
 
 // ---- Choose I2C instance and pins here ----
-#define I2C_PORT           i2c1
-#define I2C_SDA_PIN        26      
-#define I2C_SCL_PIN        27      
-#define I2C_FREQ_HZ        100000 // 100 kHz
-#define ACD1100_I2C_ADDR   0x2A
 
 int main() {
-    stdio_init_all();
-    acd1100_init(I2C_PORT, I2C_SDA_PIN, I2C_SCL_PIN, I2C_FREQ_HZ);
-
     // Wait for serial connection
     sleep_ms(2000);
-    printf("=== Pico W MQTT Test ===\n");
+
+    stdio_init_all();
+    acd1100_init(I2C_PORT, I2C_SDA_PIN, I2C_SCL_PIN, I2C_FREQ_HZ);
 
     // Initialize server components
     setup_wifi();
     setup_mqtt();
 
     // Subscribe to topics
-    mqtt_subscribe_topic(TOPIC_PUBLISH, 0);
+    mqtt_subscribe_topic(TOPIC_SAFETY_LEVEL, 0);
 
     uint32_t ppm = 0;
     uint16_t t_raw = 0;
@@ -41,7 +35,7 @@ int main() {
 
         if (ok) {
             printf("CO2: %lu ppm\n", (unsigned long)ppm);
-            mqtt_publish_message(TOPIC_PUBLISH, ppm_payload, 0, 0);
+            mqtt_publish_message(TOPIC_CO2, ppm_payload, 0, 0);
         }
         sleep_ms(5000);
     }

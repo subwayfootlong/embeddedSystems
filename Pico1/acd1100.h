@@ -25,6 +25,13 @@
 #define ACD1100_DEFAULT_FREQ_HZ 100000u
 #endif
 
+#define I2C_PORT           i2c1
+#define I2C_SDA_PIN        26      
+#define I2C_SCL_PIN        27      
+#define I2C_FREQ_HZ        100000 // 100 kHz
+#define ACD1100_I2C_ADDR   0x2A
+
+
 #define ACD1100_PIN_DEFAULT ((uint)(-1))
 
 bool acd1100_read_measurement(i2c_inst_t *i2c,
