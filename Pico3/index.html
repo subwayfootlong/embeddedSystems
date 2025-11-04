@@ -1,0 +1,42 @@
+<!doctype html><html><head>
+<meta name=viewport content="width=device-width,initial-scale=1">
+<title>Pico Gas Data</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+body{font-family:sans-serif;background:#f5f5f5;margin:1em}
+h2{color:#07c}
+canvas{width:100%;height:300px;background:#fff;border-radius:8px}
+button{padding:.4em 1em;margin-bottom:1em}
+</style>
+</head><body>
+<h2>Pico Gas Data</h2>
+<button onclick="r()">Refresh</button>
+<canvas id=c></canvas>
+<script>
+let g;
+async function r(){
+ const R=await fetch('/data');
+ const L=(await R.text()).trim().split('\n');
+ const lab=[],a=[],b=[],c=[],d=[];
+ for(const l of L){
+  const p=l.split(','),t=+p[0],x=p[1],v=p.slice(2).map(Number);
+  const tm=new Date(t).toLocaleTimeString();
+  lab.push(tm);
+  if(x==='pico1/sensor/data'){a.push(v[0]);b.push(v[1]);c.push(v[2]);d.push(null);}
+  else if(x==='pico2/sensor/data'){a.push(null);b.push(null);c.push(null);d.push(v[0]);}
+ }
+ if(g)g.destroy();
+ g=new Chart(document.getElementById('c'),{
+  type:'line',
+  data:{labels:lab,datasets:[
+   {label:'LPG',data:a,borderColor:'red',fill:!1,tension:.1,spanGaps:!0},
+   {label:'CO',data:b,borderColor:'green',fill:!1,tension:.1,spanGaps:!0},
+   {label:'NH3',data:c,borderColor:'orange',fill:!1,tension:.1,spanGaps:!0},
+   {label:'CO2',data:d,borderColor:'blue',fill:!1,tension:.1,spanGaps:!0}
+  ]},
+  options:{scales:{y:{beginAtZero:!0}}}
+ });
+}
+r();
+</script>
+</body></html>
