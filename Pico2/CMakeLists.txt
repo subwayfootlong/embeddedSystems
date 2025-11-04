@@ -28,28 +28,28 @@ set(PICO_BOARD pico_w CACHE STRING "Board type")
 # Pull in Raspberry Pi Pico SDK (must be before project)
 include(pico_sdk_import.cmake)
 
-project(Pico1 C CXX ASM)
+project(Pico2 C CXX ASM)
 
 # Initialise the Raspberry Pi Pico SDK
 pico_sdk_init()
 
 # Add executable. Default name is the project name, version 0.1
 
-add_executable(Pico1
+add_executable(Pico2
     main.c
     acd1100.c
     mqtt_driver.c
     wifi_driver.c
 )
 
-target_include_directories(Pico1 PRIVATE ${CMAKE_CURRENT_LIST_DIR})
+target_include_directories(Pico2 PRIVATE ${CMAKE_CURRENT_LIST_DIR})
 
 # Enable USB stdio; disable UART stdio
-pico_enable_stdio_usb(Pico1 1)
-pico_enable_stdio_uart(Pico1 0)
+pico_enable_stdio_usb(Pico2 1)
+pico_enable_stdio_uart(Pico2 0)
 
 # pull in common dependencies
-target_link_libraries(Pico1 
+target_link_libraries(Pico2 
     pico_stdlib
     hardware_i2c
     pico_cyw43_arch_lwip_threadsafe_background
@@ -57,10 +57,10 @@ target_link_libraries(Pico1
 )
 
 if (PICO_CYW43_SUPPORTED)
-    target_link_libraries(Pico1 pico_cyw43_arch_none)
+    target_link_libraries(Pico2 pico_cyw43_arch_none)
 endif()
 
 # create map/bin/hex file etc.
-pico_add_extra_outputs(Pico1)
+pico_add_extra_outputs(Pico2)
 
 # add url via pico_set_program_url
