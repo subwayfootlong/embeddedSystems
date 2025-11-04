@@ -3,19 +3,12 @@
 #include "mq135_driver.h"
 
 int main() {
+    // 1. Initialize standard I/O and wait
     stdio_init_all();
     sleep_ms(1200);
     
-    mq135_print_config();
-    mq135_setup();
+    // 2. Run the centralized sensor logic loop
+    mq135_run_loop();
     
-    mq135_reading_t reading;
-    
-    while (true) {
-        mq135_read(&reading);
-        mq135_print(&reading);
-        sleep_ms(1000);
-    }
-    
-    return 0;
+    return 0; 
 }
