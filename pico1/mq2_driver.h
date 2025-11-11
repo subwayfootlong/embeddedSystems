@@ -4,13 +4,16 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+#define MQ2_ADC_GPIO (26)
 #define V_REF (3.3f)
 #define VCC_ADC_VOLTAGE (5.0f)
 #define kAdcMax (4095.0f)
-#define RL_OHM (10000.0f) 
-#define R0_CLEAN_AIR_OHM (168571.0f) // (5.0/0.28 - 1) * 10000 > change to 0.18-19-20
+#define RL_OHM (20000.0f) 
+#define R0_CLEAN_AIR_OHM (535555.6f)
 #define LPG_SLOPE (-0.4500f)
-#define LPG_INTERCEPT (0.4500f)
+#define LPG_INTERCEPT (1.1710f)
+#define EMA_ALPHA (0.1f)
+#define MQ2_MAX_PPM (10000.0f)
 
 /**
  * @brief Error codes for MQ2 sensor driver

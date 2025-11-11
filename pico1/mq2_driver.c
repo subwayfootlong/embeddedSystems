@@ -25,7 +25,7 @@ int mq2_init(const mq2_config *cfg)
     config = *cfg;
 
     adc_init();
-    adc_gpio_init(26 + config.adc_channel);
+    adc_gpio_init(MQ2_ADC_GPIO + config.adc_channel);
     adc_select_input(config.adc_channel);
 
     last_sample_time = make_timeout_time_ms(0);
@@ -84,14 +84,35 @@ int mq2_sample(float *ppm_out, float *voltage_out)
 
     float rs_ohm = ((VCC_ADC_VOLTAGE / voltage) - 1.0f) * RL_OHM;
     float rs_ro_ratio = rs_ohm / R0_CLEAN_AIR_OHM;
-    
-    if (rs_ro_ratio > 0) {
-        float log10_rs_ro = log10(rs_ro_ratio);
+
+    float current_ppm = 0.0f;
+
+    if (rs_ro_ratio > 0.0f) {
+        float log10_rs_ro = log10f(rs_ro_ratio);
         float log10_ppm = (log10_rs_ro - LPG_INTERCEPT) / LPG_SLOPE;
-        
-        *ppm_out = pow(10.0f, log10_ppm);
-    } else {
-        *ppm_out = 0.0f; 
+        current_ppm = pow(10.0f, log10_ppm);
+    }
+
+    /* Exponential Moving Average (EMA) filter with clamping */
+    {
+        static float filtered_ppm = 0.0f;
+        const float max_ppm_voltage = current_ppm;
+
+        filtered_ppm = EMA_ALPHA * current_ppm + (1.0f - EMA_ALPHA) * filtered_ppm;
+
+        if (filtered_ppm > max_ppm_voltage) {
+            filtered_ppm = max_ppm_voltage;
+        }
+
+        if (filtered_ppm > MQ2_MAX_PPM) {
+            filtered_ppm = MQ2_MAX_PPM;
+        }
+
+        current_ppm = filtered_ppm;
+    }
+
+    if (ppm_out != NULL) {
+        *ppm_out = current_ppm;
     }
 
     if (voltage_out) {
@@ -130,7 +151,7 @@ mq2_reading mq2_get_payload()
                 break;
         }
     } else {
-        printf("MQ2 | ~%.2f ppm | Vadc: %.2f V\n", result.ppm, result.voltage);
+        printf("MQ2 | ~%.2f ppm | %.2f V\n", result.ppm, result.voltage);
     }
     
     return result;
@@ -142,7 +163,8 @@ void mq2_start()
         sleep_ms(100);
     }
 
-    printf("\n=== Pico W MQ2 Gas Sensor Driver ===\n");
+    printf("\n=== MQ-2 Sensor ===\n");
+    printf("ADC pin=GP%d | Vref=%.2fV | Vcc=%.2fV | RL=%.0fΩ | R0=%.0fΩ\n", MQ2_ADC_GPIO, V_REF, VCC_ADC_VOLTAGE, RL_OHM, R0_CLEAN_AIR_OHM);
 
     mq2_config cfg = {
         .adc_channel     = 0,
@@ -152,13 +174,15 @@ void mq2_start()
 
     if (mq2_init(&cfg) != MQ2_OK) {
         printf("Failed to initialize MQ2 driver.\n");
+    } else {
+        printf("MQ2 driver initialized successfully.\n");
     }
 
     mq2_warmup();
 
     uint32_t elapsed_seconds = cfg.warmup_ms / 1000;
     while (!mq2_ready()) {
-        printf("Warming up heater, please wait %1dseconds...\n", elapsed_seconds);
+        printf("Warming up heater, please wait %useconds...\n", elapsed_seconds);
         sleep_ms(1000);
 
         if (elapsed_seconds > 0) {
