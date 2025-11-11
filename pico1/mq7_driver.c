@@ -50,7 +50,7 @@ float mq7_estimate_ppm(float rs_ohms) {
     
     // Clamp to prevent extreme values (optional, clamps to 1,000,000 ppm)
     if (log10ppm < -6.0f) log10ppm = -6.0f;
-    if (log10ppm >  6.0f) log10ppm =  6.0f;
+    if (log10ppm >  4.0f) log10ppm =  4.0f;
     
     return powf(10.0f, log10ppm);
 }
