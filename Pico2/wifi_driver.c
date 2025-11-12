@@ -20,17 +20,22 @@ int wifi_init(void) {
 }
 
 int wifi_connect(const char *ssid, const char *pass, uint32_t timeout_ms) {
-    int retCode = cyw43_arch_wifi_connect_timeout_ms(
-        ssid, pass, CYW43_AUTH_WPA2_AES_PSK, timeout_ms
-    );
-
-    if (retCode) {
-        printf("Wi-Fi connect failed (code=%d)\n", retCode);
-        return WIFI_ERROR;
+    const int MAX_RETRIES = 5;
+    for (int i = 1; i <= MAX_RETRIES; i++) {
+        int ret = cyw43_arch_wifi_connect_timeout_ms(
+            ssid, pass, CYW43_AUTH_WPA2_AES_PSK, timeout_ms
+        );
+        if (ret == 0) {
+            printf("Connected to Wi-Fi on attempt %d\n", i);
+            return WIFI_OK;
+        }
+        printf("Wi-Fi connect failed (attempt %d/%d, code=%d)\n", i, MAX_RETRIES, ret);
+        sleep_ms(2000);
     }
-    printf("Connected to Wi-Fi: %s\n", ssid);
-    return WIFI_OK;
+    printf("Wi-Fi connection failed after %d retries\n", MAX_RETRIES);
+    return WIFI_ERROR;
 }
+
 
 void wifi_deinit(void) {
     cyw43_arch_deinit();
