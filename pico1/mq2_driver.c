@@ -159,17 +159,13 @@ mq2_reading mq2_get_payload()
 
 void mq2_start()
 {
-    while (!stdio_usb_connected()) {
-        sleep_ms(100);
-    }
-
     printf("\n=== MQ-2 Sensor ===\n");
     printf("ADC pin=GP%d | Vref=%.2fV | Vcc=%.2fV | RL=%.0fΩ | R0=%.0fΩ\n", MQ2_ADC_GPIO, V_REF, VCC_ADC_VOLTAGE, RL_OHM, R0_CLEAN_AIR_OHM);
 
     mq2_config cfg = {
         .adc_channel     = 0,
         .warmup_ms       = 20000,
-        .min_interval_ms = 1000
+        .min_interval_ms = 9000
     };
 
     if (mq2_init(&cfg) != MQ2_OK) {
