@@ -4,7 +4,7 @@ cmake_minimum_required(VERSION 3.13)
 include($ENV{PICO_SDK_PATH}/external/pico_sdk_import.cmake)
 
 # Set name of project and C/C++ standards
-project(lab2 C CXX ASM)
+project(lab1 C CXX ASM)
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_CXX_STANDARD 17)
 
@@ -12,19 +12,18 @@ set(CMAKE_CXX_STANDARD 17)
 pico_sdk_init()
 
 # Add executable (use your main source file)
-add_executable(lab2
+add_executable(lab1
     main.c
-    functions.c
 )
 
 # Create map/bin/hex/uf2 files
-pico_add_extra_outputs(lab2)
+pico_add_extra_outputs(lab1)
 
 # Link to pico_stdlib (gpio, time, etc.)
-target_link_libraries(lab2
+target_link_libraries(lab1
     pico_stdlib
 )
 
 # Enable usb output, disable uart output (match lab3 behavior)
-pico_enable_stdio_usb(lab2 1)
-pico_enable_stdio_uart(lab2 0)
+pico_enable_stdio_usb(lab1 1)
+pico_enable_stdio_uart(lab1 0)

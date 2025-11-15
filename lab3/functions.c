@@ -1,84 +1,72 @@
 #include "functions.h"
+#include "hardware/gpio.h"
 #include <stdio.h>
 
-// Initialize stopwatch variables
-void stopwatch_init(Stopwatch *sw) {
-    // Start in idle state
-    sw->system_state = STATE_IDLE;
-    
-    // Button is not pressed initially
-    sw->btn_depressed = false;
-    
-    // Debounce process not started
-    sw->debounce_start = false;
-    
-    // Stopwatch starts at 0 seconds
-    sw->second_count = 0;
+#define BTN_PIN 21 // active-low
+
+void sw_init(Stopwatch *sw)
+{
+    sw->state = IDLE;
+    sw->seconds = 0;
+    sw->debounce_active = false;
 }
 
-// Update button state after debounce check
-void stopwatch_alarm_update(Stopwatch *sw, bool button_pressed) {
-    // If button is released, mark as depressed (valid press detected)
-    if (!button_pressed) {
-        sw->btn_depressed = true;
-    } else {
-        sw->btn_depressed = false;
+// 1-second interrupt
+void sw_tick(Stopwatch *sw)
+{
+    if (sw->state == RUNNING)
+    {
+        sw->seconds++;
+        printf("%d\n", sw->seconds);
     }
-    // Reset debounce flag
-    sw->debounce_start = false;
 }
 
-// Called once per tick (e.g., every second) to update stopwatch counter
-void stopwatch_tick(Stopwatch *sw) {
-    // Increment seconds
-    sw->second_count++;
-    // Display only the number for test compatibility
-    //printf("%d\n", sw->second_count);
+// debounce after 50 ms
+int64_t sw_debounce_cb(alarm_id_t id, void *user_data)
+{
+    Stopwatch *sw = (Stopwatch *)user_data;
+    sw->debounce_active = false;
+
+    bool pressed = !gpio_get(BTN_PIN);
+
+    if (pressed && sw->state == DEBOUNCE)
+    {
+        sw->seconds = 0; // start fresh
+        printf("0\n");
+        sw->state = RUNNING;
+    }
+    else
+    {
+        sw->state = IDLE;
+    }
+    return 0;
 }
 
-void stopwatch_update_state(Stopwatch *sw, bool button_pressed) {
-    switch(sw->system_state) {
-        case STATE_IDLE:
-            // Wait for button press
-            if (!button_pressed) {
-                // Button pressed -> start debounce process
-                sw->system_state = STATE_WAIT_DEBOUNCE;
-                sw->debounce_start = true;
-            }
-            break;
+void sw_update(Stopwatch *sw, bool raw)
+{
+    bool pressed = !raw; // active-low
 
-        case STATE_WAIT_DEBOUNCE:
-            // Wait until debounce period is cleared
-            if (!sw->debounce_start) {
-                // If button is confirmed pressed -> move to depressed state
-                if (sw->btn_depressed) {
-                    sw->system_state = STATE_BTN_DEPRESSED;
-                } else {
-                    // If false trigger, return to idle
-                    sw->system_state = STATE_IDLE;
-                }
-            }
-            break;
+    switch (sw->state)
+    {
+    case IDLE:
+        if (pressed && !sw->debounce_active)
+        {
+            sw->debounce_active = true;
+            sw->state = DEBOUNCE;
+            add_alarm_in_ms(50, sw_debounce_cb, sw, false);
+        }
+        break;
 
-        case STATE_BTN_DEPRESSED:
-            // Wait for button release
-            if (button_pressed) {
-                sw->system_state = STATE_BTN_WAIT_RELEASE;
-            }
-            break;
+    case RUNNING:
+        if (!pressed)
+        {
+            sw->state = IDLE;
+            sw->seconds = 0; // reset only, no print
+        }
+        break;
 
-        case STATE_BTN_WAIT_RELEASE:
-            // Reset stopwatch when button is released
-            // Reset stopwatch counter
-            sw->second_count = 0;
-            // Remove or comment out the following line for test compatibility
-            // printf("Stopwatch reset to 0 seconds\n");
-            // Go back to idle state
-            sw->system_state = STATE_IDLE;
-            break;
-
-        default:
-            sw->system_state = STATE_IDLE;
-            break;
+    case DEBOUNCE:
+    default:
+        break;
     }
 }

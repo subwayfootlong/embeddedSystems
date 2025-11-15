@@ -14,6 +14,7 @@ endif()
 # Add individual projects
 if(NOT PICO_NO_HARDWARE)
     add_subdirectory(lab1)
+    add_subdirectory(lab2)
     add_subdirectory(lab3)
     add_subdirectory(lab4)
     add_subdirectory(lab6)

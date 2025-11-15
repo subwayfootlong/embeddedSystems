@@ -13,7 +13,7 @@ pico_sdk_init()
 
 # Tell CMake where to find the executable source file
 add_executable(lab3 
-    template_main.c
+    main.c
     functions.c
 )
 
