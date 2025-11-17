@@ -17,11 +17,15 @@ add_executable(pico4
     wifi_driver.c
     mqtt_driver.c
     model_data.cc
+    ml_inference.cpp
 )
+
 
 target_include_directories(pico4 PRIVATE
     ${CMAKE_CURRENT_LIST_DIR}
+    ${CMAKE_CURRENT_LIST_DIR}/../tflmicro/src
 )
+
 
 target_link_libraries(pico4
     pico_stdlib

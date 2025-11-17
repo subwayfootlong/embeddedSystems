@@ -15,4 +15,6 @@
 //Each Pico should have its own unique topic to avoid message conflicts
 #define TOPIC_PICO1 "pico1/sensor/data"
 #define TOPIC_PICO2 "pico2/sensor/data"
+#define TOPIC_PREDICTION "pico4/prediction"
+
 #endif
