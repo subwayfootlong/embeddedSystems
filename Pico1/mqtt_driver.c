@@ -87,7 +87,7 @@ int mqtt_connect(const char* broker_ip, uint16_t port, mqtt_message_callback_t c
     struct mqtt_connect_client_info_t ci;
     memset(&ci, 0, sizeof(ci));
     ci.client_id = "pico_w_client";
-    ci.keep_alive = 60;
+    ci.keep_alive = 300;
     ci.will_topic = NULL;
     ci.will_msg = NULL;
     
