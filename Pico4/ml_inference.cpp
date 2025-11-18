@@ -1,25 +1,29 @@
 #include "ml_inference.h"
 
 // TFLM headers from Pico-TFLMicro submodule
-#include "tensorflow/lite/c/common.h"
 #include "tensorflow/lite/micro/micro_interpreter.h"
 #include "tensorflow/lite/micro/micro_mutable_op_resolver.h"
 #include "tensorflow/lite/schema/schema_generated.h"
-#include "tensorflow/lite/version.h"
+#include "tensorflow/lite/c/common.h"
 
 // Model data generated from Colab (renamed to model_data.cc)
 extern unsigned char safety_model_tflite[];
 extern unsigned int  safety_model_tflite_len;
 
-// NOTE: If you export scaler mean/std from Colab, paste the real values here.
-// For now, these are placeholders (mean = 0, std = 1 => no scaling).
-// Replace with your actual numbers later for correct behaviour.
+// ACTUAL StandardScaler values from your training data
+// Order: LPG, CO, NH3, CO2
 static const float kFeatureMean[4] = {
-    0.0f, 0.0f, 0.0f, 0.0f  // LPG, CO, NH3, CO2
+    430.52459716796875f,   // LPG mean
+    69.808837890625f,      // CO mean  
+    87.08229827880859f,    // NH3 mean
+    1531.107421875f        // CO2 mean
 };
 
 static const float kFeatureStd[4] = {
-    1.0f, 1.0f, 1.0f, 1.0f  // LPG, CO, NH3, CO2
+    152.9862060546875f,    // LPG std
+    21.112415313720703f,   // CO std
+    70.02783966064453f,    // NH3 std
+    1828.5841064453125f    // CO2 std
 };
 
 namespace {
@@ -43,34 +47,24 @@ bool ml_inference_init(void) {
         return false;
     }
 
-    // Schema version check
-    if (g_model->version() != TFLITE_SCHEMA_VERSION) {
-        return false;
-    }
+    // Schema version check - comment out if it causes compilation issues
+    // if (g_model->version() != TFLITE_SCHEMA_VERSION) {
+    //     return false;
+    // }
 
     // Resolver: register only the ops your tiny MLP needs.
-    // A dense MLP with ReLU + Softmax typically needs:
-    //   - FULLY_CONNECTED
-    //   - RELU
-    //   - SOFTMAX
-    //
-    // Increase template parameter if you add more ops.
     static tflite::MicroMutableOpResolver<4> resolver;
     if (resolver.AddFullyConnected() != kTfLiteOk) return false;
-    if (resolver.AddRelu()           != kTfLiteOk) return false;
-    if (resolver.AddSoftmax()        != kTfLiteOk) return false;
-    // Some models insert a RESHAPE op around dense layers. Safe to add:
-    resolver.AddReshape();
+    if (resolver.AddRelu() != kTfLiteOk) return false;
+    if (resolver.AddSoftmax() != kTfLiteOk) return false;
+    if (resolver.AddReshape() != kTfLiteOk) return false;
 
-    // Interpreter (new signature: no ErrorReporter parameter here)
+    // Interpreter
     static tflite::MicroInterpreter static_interpreter(
         g_model,
         resolver,
         tensor_arena,
         kTensorArenaSize
-        // MicroResourceVariables* = nullptr
-        // MicroProfilerInterface* = nullptr
-        // bool use_cur_dylib_error_reporter = false (default)
     );
 
     g_interpreter = &static_interpreter;

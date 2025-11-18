@@ -8,10 +8,8 @@ static mqtt_client_t *mqtt_client = NULL;
 static mqtt_status_t mqtt_status = MQTT_STATUS_DISCONNECTED;
 static mqtt_message_callback_t user_callback = NULL;
 
-// Callback for incoming MQTT messages
-void mqtt_message_received(const char* topic, const char* payload, uint16_t payload_len) {
-    printf("Message received: %.*s\n", payload_len, payload);
-}
+// Buffer to store the current topic between callbacks
+static char current_topic[64] = "";
 
 // MQTT connection callback
 static void mqtt_connection_cb(mqtt_client_t *client, void *arg, mqtt_connection_status_t status) {
@@ -24,12 +22,20 @@ static void mqtt_connection_cb(mqtt_client_t *client, void *arg, mqtt_connection
     }
 }
 
-// MQTT incoming publish callback
+// MQTT incoming publish callback - store the topic
 static void mqtt_incoming_publish_cb(void *arg, const char *topic, u32_t tot_len) {
-    printf("Incoming publish on topic: %s (length: %lu)\n", topic, (unsigned long)tot_len);
+    printf("[DEBUG] Incoming publish - Topic: '%s', Length: %lu\n", topic ? topic : "NULL", (unsigned long)tot_len);
+    
+    // Store the topic for the data callback
+    if (topic) {
+        strncpy(current_topic, topic, sizeof(current_topic) - 1);
+        current_topic[sizeof(current_topic) - 1] = '\0';
+    } else {
+        current_topic[0] = '\0';
+    }
 }
 
-// MQTT incoming data callback
+// MQTT incoming data callback - use stored topic
 static void mqtt_incoming_data_cb(void *arg, const u8_t *data, u16_t len, u8_t flags) {
     // Copy data to temporary buffer
     char payload[256];
@@ -37,12 +43,17 @@ static void mqtt_incoming_data_cb(void *arg, const u8_t *data, u16_t len, u8_t f
         memcpy(payload, data, len);
         payload[len] = '\0';
         
-        if (user_callback) {
-            user_callback("", payload, len);  // Topic already printed in publish_cb
+        printf("[DEBUG] Data callback - Topic: '%s', Payload: %s\n", current_topic, payload);
+        
+        if (user_callback && current_topic[0] != '\0') {
+            user_callback(current_topic, payload, len);
         }
         
         printf("Received: %s\n", payload);
     }
+    
+    // Clear topic for next message
+    current_topic[0] = '\0';
 }
 
 // MQTT subscribe callback
@@ -71,6 +82,7 @@ int mqtt_init(const char* client_id) {
     }
     
     mqtt_status = MQTT_STATUS_DISCONNECTED;
+    current_topic[0] = '\0';
     printf("MQTT client initialized (ID: %s)\n", client_id);
     return MQTT_OK;
 }
@@ -86,7 +98,7 @@ int mqtt_connect(const char* broker_ip, uint16_t port, mqtt_message_callback_t c
     // Configure MQTT client info
     struct mqtt_connect_client_info_t ci;
     memset(&ci, 0, sizeof(ci));
-    ci.client_id = "pico_w_client";
+    ci.client_id = MQTT_CLIENT_ID;
     ci.keep_alive = 60;
     ci.will_topic = NULL;
     ci.will_msg = NULL;
@@ -193,32 +205,4 @@ void mqtt_disconnect_client(void) {
 void mqtt_poll(void) {
     // This function can be used for any periodic MQTT maintenance
     // Currently lwIP handles polling internally
-}
-
-void setup_mqtt(void) {
-    printf("\n2. Initializing MQTT...\n");
-    if (mqtt_init(MQTT_CLIENT_ID) != MQTT_OK) {
-        printf("MQTT init failed\n");
-        return;
-    }
-
-    printf("\n3. Connecting to MQTT broker...\n");
-    if (mqtt_connect(MQTT_BROKER_IP, MQTT_BROKER_PORT, mqtt_message_received) != MQTT_OK) {
-        printf("MQTT connect failed\n");
-        return;
-    }
-
-    // Wait for connection
-    int timeout = 10;
-    while (mqtt_get_status() != MQTT_STATUS_CONNECTED && timeout > 0) {
-        sleep_ms(1000);
-        timeout--;
-    }
-
-    if (mqtt_get_status() != MQTT_STATUS_CONNECTED) {
-        printf("MQTT connection timeout\n");
-        return;
-    }
-
-    printf("\n4. MQTT Connected Successfully!\n");
 }
