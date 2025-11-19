@@ -12,7 +12,7 @@
 
 // MQTT Topics
 #define TOPIC_PUBLISH_PICO1 "pico1/sensor/data"
-#define TOPIC_SUBSCRIBE_PICO1 "pico3/safety_level"
+#define TOPIC_PREDICTION "pico4/prediction"
 //Each Pico should have its own unique topic to avoid message conflicts
 
 #endif

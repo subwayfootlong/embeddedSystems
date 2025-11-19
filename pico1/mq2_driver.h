@@ -32,7 +32,6 @@ typedef enum {
 typedef struct {
     uint8_t     adc_channel;        // ADC channel number (e.g., 0 for GPIO26)
     uint32_t    warmup_ms;          // Warm-up time in milliseconds
-    uint32_t    min_interval_ms;    // Minimum time between samples in milliseconds
 } mq2_config;
 
 typedef struct {
@@ -42,7 +41,6 @@ typedef struct {
 } mq2_reading;
 
 int mq2_init(const mq2_config *cfg);
-mq2_config mq2_get_config();
 int mq2_warmup();
 bool mq2_ready();
 int mq2_sample(float *ppm_out, float *voltage_out);

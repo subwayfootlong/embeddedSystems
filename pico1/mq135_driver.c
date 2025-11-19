@@ -112,13 +112,13 @@ mq135_status_t mq135_read(mq135_reading_t *reading) {
 
 void mq135_print(const mq135_reading_t *reading) {
     if (!reading) return;
-    printf("MQ135| Vadc=%.3fV | Rs=%.0fΩ | Rs/R0=%.2f | NH3=%.1f ppm\n",
-           reading->vadc, reading->rs, reading->ratio, reading->ppm);
+    printf("MQ135 | ~%.1f ppm | %.3f V\n",
+           reading->ppm, reading->vadc);
 }
 
 void mq135_print_config(void) {
-    printf("\n=== MQ-135 Sensor (Ammonia Only) ===\n");
-    printf("ADC pin=GP%d | Vref=%.2fV | Sensor Vcc=%.2fV | RL=%.0fΩ | R0=%.0fΩ\n",
+    printf("\n=== MQ-135 Sensor (NH3 Only) ===\n");
+    printf("ADC pin=GP%d | Vref=%.2fV | Vcc=%.2fV | RL=%.0fΩ | R0=%.0fΩ\n",
            MQ135_ADC_GPIO, ADC_FULL_SCALE_MQ135_VOLTS, SENSOR_SUPPLY_VOLTS, 
            MQ135_RL_OHMS, MQ135_R0_OHMS);
     printf("⚠️ WARNING: No voltage divider! Direct connection. Max Vout MUST stay < %.2fV!\n", ADC_FULL_SCALE_MQ135_VOLTS);

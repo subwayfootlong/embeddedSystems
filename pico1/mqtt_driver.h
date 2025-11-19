@@ -46,4 +46,6 @@ void mqtt_poll(void);
 // Setup MQTT and connect to broker
 void setup_mqtt(void);
 
+void prediction_callback(const char* topic, const char* message, uint16_t len);
+
 #endif

@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <string.h>
 #include "pico/stdlib.h"
+#include "pred_driver.h"
 
 static mqtt_client_t *mqtt_client = NULL;
 static mqtt_status_t mqtt_status = MQTT_STATUS_DISCONNECTED;
@@ -203,7 +204,7 @@ void setup_mqtt(void) {
     }
 
     printf("\n3. Connecting to MQTT broker...\n");
-    if (mqtt_connect(MQTT_BROKER_IP, MQTT_BROKER_PORT, mqtt_message_received) != MQTT_OK) {
+    if (mqtt_connect(MQTT_BROKER_IP, MQTT_BROKER_PORT, prediction_callback) != MQTT_OK) {
         printf("MQTT connect failed\n");
         return;
     }
@@ -221,4 +222,13 @@ void setup_mqtt(void) {
     }
 
     printf("\n4. MQTT Connected Successfully!\n");
+}
+
+void prediction_callback(const char* topic, const char* message, uint16_t len) {
+    if (strcmp(message, "NORMAL") == 0)
+        pred_set_level(PRED_NORMAL);
+    else if (strcmp(message, "WARNING") == 0)
+        pred_set_level(PRED_WARNING);
+    else if (strcmp(message, "HIGH") == 0)
+        pred_set_level(PRED_HIGH);
 }

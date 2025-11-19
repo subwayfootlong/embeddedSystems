@@ -6,6 +6,7 @@
 #include "mq2_driver.h"
 #include "mq7_driver.h"
 #include "mq135_driver.h"
+#include "pred_driver.h"
 
 int main(void) {
     stdio_init_all();
@@ -19,7 +20,7 @@ int main(void) {
     setup_mqtt();
 
     // Subscribe to topics
-    mqtt_subscribe_topic(TOPIC_SUBSCRIBE_PICO1, 0);
+    mqtt_subscribe_topic(TOPIC_PREDICTION, 0);
 
     // Initialize gas sensors
     mq2_start();
@@ -31,22 +32,25 @@ int main(void) {
     // Main processing loop
     while (true) {
         cyw43_arch_poll();
-        uint32_t current_time_ms = to_ms_since_boot(get_absolute_time());
-        const uint32_t sample_interval = mq2_get_config().min_interval_ms;
-        
-        if (current_time_ms - last_publish_time_ms >= sample_interval) {
-            mq2_reading mq2 = mq2_get_payload();
-            mq7_reading mq7 = mq7_get_payload();
-            mq135_reading_t mq135 = mq135_get_payload();
-            
-            char payload[128];
-            snprintf(payload, sizeof(payload), "%.2f, %.2f, %.2f", mq2.ppm, mq7.ppm, mq135.ppm);
 
-            mqtt_publish_message(TOPIC_PUBLISH_PICO1, payload, 0, 0);
+        uint32_t now = to_ms_since_boot(get_absolute_time());
+        uint32_t sample_interval = pred_get_sample_interval();
+
+        if (now - last_publish_time_ms >= sample_interval) {
+
+        mq2_reading mq2 = mq2_get_payload();
+        mq7_reading mq7 = mq7_get_payload();
+        mq135_reading_t mq135 = mq135_get_payload();
+
+        char payload[128];
+        snprintf(payload, sizeof(payload), "%.2f, %.2f, %.2f", mq2.ppm, mq7.ppm, mq135.ppm);
+
+        mqtt_publish_message(TOPIC_PUBLISH_PICO1, payload, 0, 0);
+
+        last_publish_time_ms = now;
         }
-
-        last_publish_time_ms = current_time_ms;
-        sleep_ms(sample_interval);
+        
+        sleep_ms(50);
     }
 
     return 0;

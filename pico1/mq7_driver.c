@@ -13,6 +13,9 @@ void mq7_init_adc(void) {
     adc_gpio_init(MQ7_ADC_GPIO);
     adc_select_input(1); // GP27 = ADC1
     _mq7_initialized = true;
+
+    printf("\n=== MQ-7 Sensor ===\n");
+    printf("ADC pin=GP%d | Vref=%.2fV | Vcc=%.2fV | RL=%.0fΩ | R0=%.0fΩ\n", MQ7_ADC_GPIO, ADC_FULL_SCALE_VOLTS, SENSOR_SUPPLY_VOLTS, MQ7_RL_OHMS, MQ7_R0_OHMS);
 }
 
 float mq7_read_vadc_volts(uint16_t samples) {
@@ -117,7 +120,7 @@ mq7_reading mq7_get_payload()
                 break;
         }
     } else {
-        printf("MQ7 | Vadc=%.3f V | ppm~%.1f\n", result.voltage, result.ppm);
+        printf("MQ7 | ~%.1f ppm | %.3f V\n", result.ppm, result.voltage);
     }
     
     return result;

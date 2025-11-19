@@ -12,12 +12,10 @@
 static bool is_initialized = false;
 static mq2_config config;
 static absolute_time_t warmup_deadline;
-static absolute_time_t last_sample_time;
 
 int mq2_init(const mq2_config *cfg)
 {
     if (cfg == NULL ||
-        cfg->min_interval_ms < 1000 ||
         cfg->adc_channel > 3) {
         return MQ2_ERR_INVAL;
     }
@@ -27,15 +25,9 @@ int mq2_init(const mq2_config *cfg)
     adc_init();
     adc_gpio_init(MQ2_ADC_GPIO + config.adc_channel);
     adc_select_input(config.adc_channel);
-
-    last_sample_time = make_timeout_time_ms(0);
     is_initialized = true;
 
     return MQ2_OK;
-}
-
-mq2_config mq2_get_config() {
-    return config;
 }
 
 int mq2_warmup()
@@ -65,13 +57,6 @@ int mq2_sample(float *ppm_out, float *voltage_out)
     }
 
     if (!mq2_ready()) {
-        return MQ2_ERR_BUSY;
-    }
-
-    absolute_time_t now = get_absolute_time();
-    int64_t elapsed_ms = absolute_time_diff_us(last_sample_time, now) / 1000;
-
-    if (elapsed_ms < (int64_t)config.min_interval_ms) {
         return MQ2_ERR_BUSY;
     }
 
@@ -118,8 +103,6 @@ int mq2_sample(float *ppm_out, float *voltage_out)
     if (voltage_out) {
         *voltage_out = voltage;
     }
-    
-    last_sample_time = now;
 
     return MQ2_OK;
 }
@@ -164,8 +147,7 @@ void mq2_start()
 
     mq2_config cfg = {
         .adc_channel     = 0,
-        .warmup_ms       = 20000,
-        .min_interval_ms = 9000
+        .warmup_ms       = 20000
     };
 
     if (mq2_init(&cfg) != MQ2_OK) {

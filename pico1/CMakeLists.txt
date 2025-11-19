@@ -19,6 +19,7 @@ add_executable(pico1
     mq2_driver.c
     mq7_driver.c
     mq135_driver.c
+    pred_driver.c
 )
 
 # Include lwipopts.h from current folder
