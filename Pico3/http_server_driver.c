@@ -5,6 +5,7 @@
 #include <string.h>
 #include "pico/time.h"
 
+extern char latest_prediction[32];
 static SD_Manager *g_sd = NULL;
 static char buffer[8192];   // shared buffer for HTML or CSV
 
@@ -93,10 +94,18 @@ static err_t recv_cb(void *arg, struct tcp_pcb *tpcb, struct pbuf *p, err_t err)
     const char *body;
     char content_type[32];
 
-    if (strncmp(req, "GET /data", 9) == 0) {
+    // --- NEW: Warning level endpoint ---
+    if (strncmp(req, "GET /warning", 12) == 0) {
+        body = latest_prediction;
+        strcpy(content_type, "text/plain");
+    }
+    // --- Existing CSV endpoint ---
+    else if (strncmp(req, "GET /data", 9) == 0) {
         body = read_csv(buffer, sizeof(buffer));
         strcpy(content_type, "text/plain");
-    } else {
+    }
+    // --- Default: serve index.html ---
+    else {
         body = read_html(buffer, sizeof(buffer));
         strcpy(content_type, "text/html");
     }

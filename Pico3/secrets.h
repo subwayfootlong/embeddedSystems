@@ -17,5 +17,6 @@
 // MQTT Topics for picos
 #define TOPIC_PICO1 "pico1/sensor/data"
 #define TOPIC_PICO2 "pico2/sensor/data"
+#define TOPIC_PREDICTION "pico4/prediction"
 
 #endif

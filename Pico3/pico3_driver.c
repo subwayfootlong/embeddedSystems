@@ -16,6 +16,9 @@
 // Global SD card manager instance
 static SD_Manager sd_mgr;
 
+// NEW: stores latest ML prediction coming from pico4
+char latest_prediction[32] = "No data";
+
 /* ==========================================================
    Sensor data handler
    ========================================================== */
@@ -38,9 +41,9 @@ static void handle_sensor_data(const char* topic, const char* payload, uint16_t 
     printf("Sensor data received: %s\n", message);
 
     char csv_entry[256];
-    snprintf(csv_entry, sizeof(csv_entry),"%llu,%s,%s\n", current_timestamp, topic, message);
+    snprintf(csv_entry, sizeof(csv_entry),
+             "%llu,%s,%s\n", current_timestamp, topic, message);
     sd_write_data(&sd_mgr, "sensor_log.csv", csv_entry, true);
-
 }
 
 /* ==========================================================
@@ -49,14 +52,32 @@ static void handle_sensor_data(const char* topic, const char* payload, uint16_t 
 static void pico3_message_handler(const char* topic, const char* payload, uint16_t payload_len) {
     printf("Received message on topic: %s, length: %u\n", topic, payload_len);
 
+    /* --- Timestamp reply --- */
     if (strcmp(topic, TOPIC_TIMESTAMP_REPLY) == 0) {
-    timestamp_mqtt_handler(topic, payload, payload_len);
-    } else if (strcmp(topic, TOPIC_PICO1) == 0 || strcmp(topic, TOPIC_PICO2) == 0) {
-        handle_sensor_data(topic, payload, payload_len);
-    } else {
-        printf("Unknown topic: %s\n", topic);
+        timestamp_mqtt_handler(topic, payload, payload_len);
+        return;
     }
 
+    /* --- Sensor data from Pico 1 / Pico 2 --- */
+    if (strcmp(topic, TOPIC_PICO1) == 0 || strcmp(topic, TOPIC_PICO2) == 0) {
+        handle_sensor_data(topic, payload, payload_len);
+        return;
+    }
+
+    /* --- NEW: ML Prediction from Pico 4 --- */
+    if (strcmp(topic, TOPIC_PREDICTION) == 0) {
+        if (payload_len >= sizeof(latest_prediction))
+            payload_len = sizeof(latest_prediction) - 1;
+
+        memcpy(latest_prediction, payload, payload_len);
+        latest_prediction[payload_len] = '\0';
+
+        printf("Updated prediction: %s\n", latest_prediction);
+        return;
+    }
+
+    /* --- Unknown topic --- */
+    printf("Unknown topic: %s\n", topic);
 }
 
 /* ==========================================================
@@ -129,15 +150,22 @@ int pico3_driver_init(void) {
 
     /* --- Step 5: MQTT subscriptions --- */
     printf("\nSubscribing to sensor topics...\n");
+
     if (mqtt_subscribe_topic(TOPIC_PICO1, 0) != MQTT_OK) {
         printf("Failed to subscribe to %s\n", TOPIC_PICO1);
         return -1;
     }
+
     if (mqtt_subscribe_topic(TOPIC_PICO2, 0) != MQTT_OK) {
         printf("Failed to subscribe to %s\n", TOPIC_PICO2);
         return -1;
     }
 
+    /* --- NEW: Subscribe to Pico 4 prediction topic --- */
+    if (mqtt_subscribe_topic(TOPIC_PREDICTION, 0) != MQTT_OK) {
+        printf("Failed to subscribe to %s\n", TOPIC_PREDICTION);
+        return -1;
+    }
 
     printf("\n6. System initialized and ready.\n");
     printf("Status: WiFi=%s, MQTT=%s, Timestamp=%s\n",
