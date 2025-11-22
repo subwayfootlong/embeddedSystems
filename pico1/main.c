@@ -37,17 +37,16 @@ int main(void) {
         uint32_t sample_interval = pred_get_sample_interval();
 
         if (now - last_publish_time_ms >= sample_interval) {
+            mq2_reading mq2 = mq2_get_payload();
+            mq7_reading mq7 = mq7_get_payload();
+            mq135_reading_t mq135 = mq135_get_payload();
 
-        mq2_reading mq2 = mq2_get_payload();
-        mq7_reading mq7 = mq7_get_payload();
-        mq135_reading_t mq135 = mq135_get_payload();
+            char payload[128];
+            snprintf(payload, sizeof(payload), "%.2f, %.2f, %.2f", mq2.ppm, mq7.ppm, mq135.ppm);
 
-        char payload[128];
-        snprintf(payload, sizeof(payload), "%.2f, %.2f, %.2f", mq2.ppm, mq7.ppm, mq135.ppm);
+            mqtt_publish_message(TOPIC_PUBLISH_PICO1, payload, 0, 0);
 
-        mqtt_publish_message(TOPIC_PUBLISH_PICO1, payload, 0, 0);
-
-        last_publish_time_ms = now;
+            last_publish_time_ms = now;
         }
         
         sleep_ms(50);
