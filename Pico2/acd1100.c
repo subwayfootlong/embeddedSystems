@@ -151,9 +151,7 @@ acd1100_status_t acd1100_read_ppm_string(
 
     uint8_t buf[9] = {0};
 
-    // ----------------------------
-    // 1. Write command
-    // ----------------------------
+    // Write command
     const uint8_t cmd[2] = {0x03, 0x00};
     int w = i2c_write_blocking(i2c, addr, cmd, 2, false);
 
@@ -164,18 +162,14 @@ acd1100_status_t acd1100_read_ppm_string(
 
     sleep_ms(ACD1100_REQUEST_DELAY_MS);
 
-    // ----------------------------
-    // 2. Read 9-byte frame
-    // ----------------------------
+    // Read 9-byte frame
     int r = i2c_read_blocking(i2c, addr, buf, 9, false);
     if (r != 9) {
         printf("[ACD1100 ERROR] Short read: got %d bytes\n", r);
         return ACD1100_ERR_I2C;
     }
 
-    // ----------------------------
-    // 3. CRC checks
-    // ----------------------------
+    // CRC checks
     const uint8_t ppm_hi[2] = {buf[0], buf[1]};
     const uint8_t ppm_lo[2] = {buf[3], buf[4]};
     const uint8_t t_raw_b[2] = {buf[6], buf[7]};
@@ -193,9 +187,7 @@ acd1100_status_t acd1100_read_ppm_string(
         return ACD1100_ERR_CRC;
     }
 
-    // ----------------------------
-    // 4. Extract PPM
-    // ----------------------------
+    // Extract PPM
     uint32_t ppm =
         ((uint32_t)buf[0] << 24) |
         ((uint32_t)buf[1] << 16) |
@@ -209,9 +201,7 @@ acd1100_status_t acd1100_read_ppm_string(
 
     uint16_t t_raw = (buf[6] << 8) | buf[7];
 
-    // ----------------------------
-    // 5. Format output string
-    // ----------------------------
+    // Format output string
     snprintf(ppm_str, ppm_str_len, "%lu", ppm);
 
     if (ppm_out)     *ppm_out = ppm;
@@ -282,9 +272,7 @@ bool read_and_publish_ppm(void) {
         &t_raw
     );
 
-    // ------------------------------
     // Handle error conditions
-    // ------------------------------
     switch (status) {
 
         case ACD1100_OK:
@@ -315,10 +303,6 @@ bool read_and_publish_ppm(void) {
             return false;
     }
 
-
-    // ---------------------------------------
-    // If OK → apply filter & publish normally
-    // ---------------------------------------
     float filtered = ema_process((float)ppm);
 
     printf("CO2: raw=%lu ppm, filtered=%.1f ppm\n",
