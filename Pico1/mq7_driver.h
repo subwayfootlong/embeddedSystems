@@ -23,28 +23,24 @@ typedef struct {
 #define EMA_ALPHA            (0.1f)
 #define MQ7_MAX_PPM          10000.0f 
 
-// No divider (not used)
-#define DIVIDER_RTOP_OHMS     0.0f
-#define DIVIDER_RBOT_OHMS     1.0f
-
-// powered with 5V
+// Powered with 5V
 #define SENSOR_SUPPLY_VOLTS   5.0f
 
-// load resistance
+// Load resistance
 #define MQ7_RL_OHMS           10000.0f
 
 // Calibrated baseline resistance in clean air
 #define MQ7_R0_OHMS           118000.0f
 
-// Derived values based on graph frrom datasheet
+// Derived values based on graph from datasheet
 #define MQ7_CURVE_A          (-1.4754f)  
 #define MQ7_CURVE_B           ( 2.0f) 
 
 void   mq7_init_adc(void);
-float  mq7_read_vadc_volts(uint16_t samples);     // 5 V at ADC
-float  mq7_backscale_sensor_volts(float vadc);    // = vadc (no divider)
-float  mq7_compute_rs_ohms(float vsensor);        // from Vs, RL, Vcc
-float  mq7_estimate_ppm(float rs_ohms);           // uses Rs/R0 + curve
+float  mq7_read_vadc_volts(uint16_t samples);
+float  mq7_backscale_sensor_volts(float vadc);
+float  mq7_compute_rs_ohms(float vsensor);
+float  mq7_estimate_ppm(float rs_ohms);
 int mq7_sample(float *p_ppm_out, float *p_voltage_out);
 mq7_reading_t mq7_get_payload();
 

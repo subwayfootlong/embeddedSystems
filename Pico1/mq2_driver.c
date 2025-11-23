@@ -84,7 +84,7 @@ int mq2_sample(float *p_ppm_out, float *p_voltage_out)
         current_ppm = pow(10.0f, log10_ppm);
     }
 
-    /* Exponential Moving Average (EMA) filter with clamping */
+    // Exponential Moving Average (EMA) filter with clamping
     {
         static float filtered_ppm = 0.0f;
         const float max_ppm_voltage = current_ppm;

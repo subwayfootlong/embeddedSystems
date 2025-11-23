@@ -13,7 +13,6 @@ int main(void) {
 
     // Wait for serial connection
     sleep_ms(2000);
-    printf("=== Pico W MQTT Test ===\n");
     
     // Initialize server components
     setup_wifi();

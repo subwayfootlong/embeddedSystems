@@ -4,7 +4,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-// ========= Error Definitions =========
+// Error Definitions
 typedef enum {
     MQ135_OK      = 0,  // Measurement valid.
     MQ135_EINVAL  = 1,  // Invalid configuration (e.g., missing R0 or NULL pointer).
@@ -13,7 +13,7 @@ typedef enum {
     MQ135_ENOINIT = 4   // API used before init.
 } mq135_status_t;
 
-// ========= Hardware Configuration (Remains the same) =========
+// Hardware Configuration
 #define MQ135_ADC_GPIO              7
 #define ADC_FULL_SCALE_MQ135_VOLTS  5.0f
 #define ADC_MAX_COUNT               4095.0f
@@ -33,8 +33,9 @@ typedef enum {
 
 #define MQ135_WARMUP_MS (3 * 60 * 1000) 
 #define MQ135_MIN_INTERVAL_MS 100 
+#define ADC_RAIL_THRESHOLD 0.05f
 
-// ========= Data Structure (Remains the same) =========
+// Data Structure
 typedef struct {
     int status;
     float vadc;
@@ -44,8 +45,7 @@ typedef struct {
     float ppm;
 } mq135_reading_t;
 
-// ========= Public API (New Function Added) =========
-
+// Public API
 mq135_status_t mq135_setup(void);
 
 bool mq135_ready(void);

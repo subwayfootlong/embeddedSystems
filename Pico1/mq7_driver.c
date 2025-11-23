@@ -4,7 +4,7 @@
 #include <math.h>
 #include <stdio.h>
 
-// --- Initialization Tracking ---
+// Initialization Tracking
 static bool g_mq7_initialized = false;
 
 void mq7_init_adc(void) {
@@ -25,14 +25,13 @@ float mq7_read_vadc_volts(uint16_t samples) {
         sleep_us(100);
     }
     float avg = (float)acc / (float)samples;
-    return (avg / ADC_MAX_COUNT) * ADC_FULL_SCALE_VOLTS; // 5V
+    return (avg / ADC_MAX_COUNT) * ADC_FULL_SCALE_VOLTS;
 }
 
 float mq7_backscale_sensor_volts(float vadc) {
     return vadc;
 }
 
-// Vs = Vcc * (RL / (RL + RS))  => RS = RL * (Vcc - Vs) / Vs
 float mq7_compute_rs_ohms(float vsensor) {
     // Safety checks to prevent divide by zero or negative resistance
     if (vsensor < 0.001f) vsensor = 0.001f;

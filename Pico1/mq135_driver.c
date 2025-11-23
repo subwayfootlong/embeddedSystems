@@ -5,15 +5,12 @@
 #include <stdio.h>
 #include <math.h>
 
-// --- State Variables and Constants ---
+// State Variables and Constants
 static bool g_mq135_is_initialized = false;
 static absolute_time_t g_mq135_init_time;
-static absolute_time_t g_mq135_last_sample_time; 
+static absolute_time_t g_mq135_last_sample_time;
 
-#define ADC_RAIL_THRESHOLD 0.05f 
-
-// ========= Private Helper Functions (Assumed present from previous step) =========
-
+// Private Helper Functions
 static inline uint32_t gpio_to_adc_ch(uint32_t gpio)
 {
     return (gpio >= 26 && gpio <= 28) ? (gpio - 26) : 0;
@@ -78,8 +75,7 @@ static float calculate_nh3_ppm(float ratio)
     return clamp_ppm(ppm);
 }
 
-// ========= Public API Implementation (Setup, Read, Print) =========
-
+// Public API Implementation (Setup, Read, Print)
 const char* mq135_strerror(mq135_status_t status)
 {
     switch (status)
@@ -106,7 +102,6 @@ mq135_status_t mq135_setup(void) {
     return MQ135_OK;
 }
 
-// NOTE: mq135_ready() function is kept as it might be useful elsewhere
 bool mq135_ready(void) {
     if (!g_mq135_is_initialized) return false;
     return absolute_time_diff_us(g_mq135_init_time, get_absolute_time()) >= (MQ135_WARMUP_MS * 1000);
@@ -154,8 +149,6 @@ void mq135_print_config(void) {
     printf("NOTE: Sensor needs 3-5 minute warm-up.\n\n");
 }
 
-
-// ========= UPDATED CENTRALIZED LOOP FUNCTION =========
 void mq135_start(void) {
     mq135_status_t status;
     mq135_print_config();
