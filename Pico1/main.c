@@ -30,15 +30,17 @@ int main(void) {
     uint32_t last_publish_time_ms = 0;
 
     // Main processing loop
-    while (true) {
+    for (;;)
+    {
         cyw43_arch_poll();
 
         uint32_t now = to_ms_since_boot(get_absolute_time());
         uint32_t sample_interval = pred_get_sample_interval();
 
-        if (now - last_publish_time_ms >= sample_interval) {
-            mq2_reading mq2 = mq2_get_payload();
-            mq7_reading mq7 = mq7_get_payload();
+        if (now - last_publish_time_ms >= sample_interval)
+        {
+            mq2_reading_t mq2 = mq2_get_payload();
+            mq7_reading_t mq7 = mq7_get_payload();
             mq135_reading_t mq135 = mq135_get_payload();
 
             char payload[128];

@@ -1,5 +1,5 @@
-#ifndef MQ2_FUNCTIONS_H
-#define MQ2_FUNCTIONS_H
+#ifndef MQ2_DRIVER_H
+#define MQ2_DRIVER_H
 
 #include <stdint.h>
 #include <stdbool.h>
@@ -24,7 +24,7 @@ typedef enum {
     MQ2_ERR_BUSY    = -2,
     MQ2_ERR_HW      = -3,
     MQ2_ERR_NO_INIT = -4
-} mq2_status;
+} mq2_status_t;
 
 /**
  * @brief MQ2 sensor configuration
@@ -32,19 +32,19 @@ typedef enum {
 typedef struct {
     uint8_t     adc_channel;        // ADC channel number (e.g., 0 for GPIO26)
     uint32_t    warmup_ms;          // Warm-up time in milliseconds
-} mq2_config;
+} mq2_config_t;
 
 typedef struct {
     int status;
     float ppm;
     float voltage;
-} mq2_reading;
+} mq2_reading_t;
 
-int mq2_init(const mq2_config *cfg);
+int mq2_init(const mq2_config_t *p_cfg);
 int mq2_warmup();
 bool mq2_ready();
-int mq2_sample(float *ppm_out, float *voltage_out);
-mq2_reading mq2_get_payload();
+int mq2_sample(float *p_ppm_out, float *p_voltage_out);
+mq2_reading_t mq2_get_payload();
 void mq2_start();
 
-#endif
+#endif  // MQ2_DRIVER_H

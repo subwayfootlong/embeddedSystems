@@ -1,10 +1,8 @@
-#pragma once
+#ifndef MQ135_DRIVER_H
+#define MQ135_DRIVER_H
+
 #include <stdint.h>
 #include <stdbool.h>
-
-#ifdef __cplusplus
-extern "C" {
-#endif
 
 // ========= Error Definitions =========
 typedef enum {
@@ -33,6 +31,9 @@ typedef enum {
 #define MQ135_MIN_PPM               0.1f
 #define MQ135_MAX_PPM               10000.0f
 
+#define MQ135_WARMUP_MS (3 * 60 * 1000) 
+#define MQ135_MIN_INTERVAL_MS 100 
+
 // ========= Data Structure (Remains the same) =========
 typedef struct {
     int status;
@@ -49,11 +50,11 @@ mq135_status_t mq135_setup(void);
 
 bool mq135_ready(void);
 
-mq135_status_t mq135_read(mq135_reading_t *reading);
+mq135_status_t mq135_read(mq135_reading_t *p_reading);
 
 const char* mq135_strerror(mq135_status_t status);
 
-void mq135_print(const mq135_reading_t *reading);
+void mq135_print(const mq135_reading_t *p_reading);
 
 void mq135_print_config(void);
 
@@ -64,6 +65,4 @@ mq135_reading_t mq135_get_payload(void);
  */
 void mq135_start(void);
 
-#ifdef __cplusplus
-}
-#endif
+#endif // MQ135_DRIVER_H

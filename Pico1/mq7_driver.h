@@ -1,9 +1,7 @@
-#pragma once
-#include <stdint.h>
+#ifndef MQ7_DRIVER_H
+#define MQ7_DRIVER_H
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+#include <stdint.h>
 
 typedef enum {
     MQ7_STATUS_OK = 0,          // Measurement valid.
@@ -17,19 +15,19 @@ typedef struct {
     int status;
     float ppm;
     float voltage;
-} mq7_reading;
+} mq7_reading_t;
 
-#define MQ7_ADC_GPIO          9
-#define ADC_FULL_SCALE_VOLTS  5.0f
-#define ADC_MAX_COUNT         4095.0f
-#define EMA_ALPHA (0.1f)
+#define MQ7_ADC_GPIO         9
+#define ADC_FULL_SCALE_VOLTS 5.0f
+#define ADC_MAX_COUNT        4095.0f
+#define EMA_ALPHA            (0.1f)
 #define MQ7_MAX_PPM          10000.0f 
 
 // No divider (not used)
 #define DIVIDER_RTOP_OHMS     0.0f
 #define DIVIDER_RBOT_OHMS     1.0f
 
-//powered with 5V
+// powered with 5V
 #define SENSOR_SUPPLY_VOLTS   5.0f
 
 // load resistance
@@ -47,9 +45,7 @@ float  mq7_read_vadc_volts(uint16_t samples);     // 5 V at ADC
 float  mq7_backscale_sensor_volts(float vadc);    // = vadc (no divider)
 float  mq7_compute_rs_ohms(float vsensor);        // from Vs, RL, Vcc
 float  mq7_estimate_ppm(float rs_ohms);           // uses Rs/R0 + curve
-int mq7_sample(float *ppm_out, float *voltage_out);
-mq7_reading mq7_get_payload();
+int mq7_sample(float *p_ppm_out, float *p_voltage_out);
+mq7_reading_t mq7_get_payload();
 
-#ifdef __cplusplus
-}
-#endif
+#endif // MQ7_DRIVER_H

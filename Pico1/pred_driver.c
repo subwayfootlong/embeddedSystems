@@ -2,14 +2,14 @@
 #include <string.h>
 #include <stdio.h>
 
-static volatile prediction_level_t current_prediction = PRED_NORMAL;
+static volatile prediction_level_t g_current_prediction = PRED_NORMAL;
 
 prediction_level_t pred_get_level(void) {
-    return current_prediction;
+    return g_current_prediction;
 }
 
 void pred_set_level(prediction_level_t new_pred) {
-    current_prediction = new_pred;
+    g_current_prediction = new_pred;
 }
 
 uint32_t pred_get_sample_interval(void)

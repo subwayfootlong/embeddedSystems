@@ -1,160 +1,99 @@
-# Pico W MQTT Project
+# **Pico1 – Multi-Gas Monitoring Node (MQ2 + MQ7 + MQ135)**
 
-A complete MQTT client implementation for the Raspberry Pi Pico W that connects to WiFi and communicates with an MQTT broker.
+## **Overview**
 
-## Project Structure
+Pico1 is a dedicated multi-gas monitoring node within the sensor network, built using the Raspberry Pi Pico W. It interfaces with three distinct analog gas sensors (MQ-2, MQ-7, MQ-135) to detect a wide range of combustible and toxic gases.
 
-- **main.c** - Main application entry point with setup calls and main loop
-- **wifi_driver.c/h** - WiFi initialization and connection management
-- **mqtt_driver.c/h** - MQTT client implementation and message handling
-- **secrets.h** - Configuration file for WiFi and MQTT credentials
-- **lwipopts.h** - lwIP networking stack configuration
-- **CMakeLists.txt** - Build configuration
+The node filters raw sensor data using **Exponential Moving Average (EMA)** and **Oversampling** techniques, then publishes PPM values to an MQTT broker. Pico1 implements **Adaptive Sampling**: it subscribes to a prediction topic (published by Pico 4) to dynamically adjust its sampling rate based on the predicted safety level.
 
-## Setup Instructions
+---
 
-### 1. Configure Secrets
+## **Hardware Requirements**
 
-Edit `secrets.h` and update with your WiFi and MQTT broker details:
+| Component | Description |
+| :--- | :--- |
+| Raspberry Pi Pico W | RP2040 + WiFi Core |
+| MQ-2 Sensor | LPG detection |
+| MQ-7 Sensor | Carbon Monoxide (CO) detection |
+| MQ-135 Sensor | Ammonia (NH3) detection |
+| USB cable | Power + serial monitoring |
+| Grove 4-pin cable | ADC Connection |
 
-```c
-// WiFi Credentials
-#define WIFI_SSID "Your_WiFi_Network"
-#define WIFI_PASSWORD "Your_WiFi_Password"
+### **Wiring Configuration**
 
-// MQTT Broker settings
-#define MQTT_BROKER_IP "192.168.1.100"  // Your MQTT broker IP
-#define MQTT_BROKER_PORT 1883            // Default MQTT port
+*Note: The assignments below use the standard Pico ADC pins. Please verify `#define` values in your header files match your physical wiring.*
 
-// MQTT Client ID (unique identifier for this device)
-#define MQTT_CLIENT_ID "PicoServer"
+| Sensor | Pico Pin | ADC Channel | Driver File |
+| :--- | :--- | :--- | :--- |
+| **MQ-2** (LPG) | GP26 | ADC 0 | `mq2_driver.h` |
+| **MQ-7** (CO) | GP9 | ADC 1 | `mq7_driver.h` |
+| **MQ-135** (NH3) | GP7 | ADC 2 | `mq135_driver.h` |
 
-// MQTT Topics for testing
-#define TOPIC_PUBLISH "test/publish"
-#define TOPIC_SUBSCRIBE "test/subscribe"
-```
+> **ELECTRICAL WARNING:** The MQ sensors output **0–5V** analog signals. The Pico W ADC pins have a maximum limit of **3.3V**. Connecting the sensor output directly to the Pico **will damage the GPIO**. Use a voltage divider (e.g., 20kΩ/10kΩ) or a logic level shifter.
 
-### 2. Build and Upload
+---
 
-```bash
-cd build
-cmake ..
-make
-```
+## **Software Stack**
 
-Upload the generated `.uf2` file to your Pico W in bootloader mode.
+| Component | Purpose |
+| :--- | :--- |
+| Pico SDK 2.x | Core firmware |
+| CYW43 WiFi | WiFi connectivity |
+| lwIP | MQTT/WiFi networking |
+| Custom MQTT Driver | Publishes/subscribes to topics |
+| MQ Drivers | Sensor data, calibration, and error handling |
+| Prediction Driver | Manages prediction levels (`NORMAL`, `WARNING`, `HIGH`) |
 
-## Usage
+---
 
-### Main Loop - Publishing
+## **Features**
 
-Add what you want to publish in this while true loop in main.c
+### **1. Multi-Sensor Gas Detection**
+Pico1 calculates gas concentrations based on specific sensitivity curves found in the datasheets:
 
-```c
-//Example Posting Hello world every 5 seconds
-while (true) {
-    mqtt_publish_message(TOPIC_PUBLISH, "hello world", 0, 0);
-    sleep_ms(5000);
-}
-```
+* **MQ-2:** Calibrated for LPG.
+* **MQ-7:** Calibrated for Carbon Monoxide (CO).
+* **MQ-135:** Calibrated for Ammonia (NH3).
 
-**Parameters for `mqtt_publish_message()`:**
-- `topic` - MQTT topic to publish to
-- `payload` - Message content (string)
-- `qos` - Quality of Service: `0` (at most once), `1` (at least once), `2` (exactly once)
-- `retain` - Retain flag: `0` (don't retain), `1` (retain on broker)
+### **2. Adaptive Sampling (Prediction Integration)**
+The node adjusts its behavior based on the safety prediction received from **Pico 4**:
 
-### Publishing Custom Messages
+| Prediction Level | Sampling Interval |
+| :--- | :--- |
+| **NORMAL** | 30 Seconds |
+| **WARNING** | 10 Seconds |
+| **HIGH** | 5 Seconds |
 
-```c
-// Publish with different content
-mqtt_publish_message("sensor/temperature", "23.5", 1, 0);
+### **3. Noise Filtering**
+To ensure stable readings, the drivers employ filtering techniques:
+* **MQ-2 & MQ-7:** Uses an **Exponential Moving Average (EMA)** to average out ADC noise.
+* **MQ-135:** Uses **Oversampling** (16 reads per sample) to average out ADC noise.
 
-// Publish with retain flag
-mqtt_publish_message("device/status", "online", 0, 1);
-```
+### **4. Error Handling**
+* **Warm-up Blocks:** `mq2_ready()` prevents reading the sensor before the heater is stable (approx. 20s).
+* **Rail Detection:** The drivers return `EHW` (Hardware Error) if the ADC reads close to 0V or Max Vref, indicating a disconnected wire or short circuit.
 
-### Subscribing to Topics
+---
 
-To subscribe, add the subscribtion in the main function of main.c
-
-```c
-int main(void) {
-    // Subscribe to topics
-    mqtt_subscribe_topic(TOPIC_SUBSCRIBE, 0);
-}
-```
-
-### Receiving Messages
-
-Incoming messages are handled by the `mqtt_message_received()` callback in `mqtt_driver.c`. By default, it prints received messages to the console:
-
-```c
-void mqtt_message_received(const char* topic, const char* payload, uint16_t payload_len) {
-    printf("Message received: %.*s\n", payload_len, payload);
-}
-```
-
-
-## Serial Debug Output
-
-Connect to the Pico W via USB serial (115200 baud) to see debug messages:
+## **Project Structure**
 
 ```
-=== Pico W MQTT Test ===
-
-1. Connecting to WiFi...
-Wi-Fi init OK
-Connected to Wi-Fi: Nad_Ismail_Fast
-Pico W IP Address: 192.168.0.150
-
-2. Initializing MQTT...
-MQTT client initialized (ID: PicoServer)
-
-3. Connecting to MQTT broker...
-Connecting to MQTT broker 192.168.0.200:1883...
-MQTT connected
-
-4. MQTT Connected Successfully!
-Subscribing to topic: test/subscribe
+Pico1/
+├── main.c              # Main application loop
+├── mq2_driver.c        # MQ-2 implementation (LPG)
+├── mq2_driver.h
+├── mq7_driver.c        # MQ-7 implementation (CO)
+├── mq7_driver.h
+├── mq135_driver.c      # MQ-135 implementation (NH3)
+├── mq135_driver.h
+├── pred_driver.c       # Prediction level management
+├── pred_driver.h
+├── mqtt_driver.c       # MQTT wrapper (connect/publish/subscribe)
+├── mqtt_driver.h
+├── wifi_driver.c       # WiFi connect/deinit logic
+├── wifi_driver.h
+├── secrets.h           # WiFi + MQTT credentials
+└── CMakeLists.txt      # Build configuration
 ```
 
-## Troubleshooting
-
-### WiFi Connection Failed
-- Check SSID and password in `secrets.h`
-- Verify the Pico W is in range and the network is 2.4GHz (not 5GHz)
-- Check WiFi security type is WPA2
-
-### MQTT Connection Timeout
-- Verify broker IP address is correct
-- Ensure broker is running and accessible on port 1883
-- Check firewall rules allow TCP connections on port 1883
-- Verify the Pico W has obtained a valid IP address
-
-### Build Errors
-- Ensure `PICO_SDK_PATH` environment variable is set correctly
-- Update your Pico SDK to version 1.5.1 or later
-- Delete `build` folder and reconfigure with CMake
-
-## Key Functions
-
-**WiFi:**
-- `setup_wifi()` - Initialize and connect to WiFi
-- `wifi_is_connected()` - Check WiFi connection status
-- `wifi_deinit()` - Disconnect WiFi
-
-**MQTT:**
-- `setup_mqtt()` - Initialize and connect to MQTT broker
-- `mqtt_publish_message(topic, payload, qos, retain)` - Publish message
-- `mqtt_subscribe_topic(topic, qos)` - Subscribe to topic
-- `mqtt_unsubscribe_topic(topic)` - Unsubscribe from topic
-- `mqtt_get_status()` - Get current connection status
-- `mqtt_disconnect_client()` - Disconnect from broker
-
-## Notes
-
-- The project uses lwIP for networking and the Pico SDK's CYW43 driver for WiFi
-- MQTT QoS levels: 0 (fast, no guarantee), 1 (guaranteed delivery), 2 (exactly once)
-- Default keep-alive is set to 60 seconds
-- Maximum payload buffer is 256 bytes for incoming messages
+---

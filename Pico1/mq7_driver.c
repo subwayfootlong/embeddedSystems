@@ -4,15 +4,14 @@
 #include <math.h>
 #include <stdio.h>
 
-
 // --- Initialization Tracking ---
-static bool _mq7_initialized = false;
+static bool g_mq7_initialized = false;
 
 void mq7_init_adc(void) {
     adc_init();
     adc_gpio_init(MQ7_ADC_GPIO);
-    adc_select_input(1); 
-    _mq7_initialized = true;
+    adc_select_input(1);
+    g_mq7_initialized = true;
 
     printf("\n=== MQ-7 Sensor ===\n");
     printf("ADC pin=GP%d | Vref=%.2fV | Vcc=%.2fV | RL=%.0fΩ | R0=%.0fΩ\n", MQ7_ADC_GPIO, ADC_FULL_SCALE_VOLTS, SENSOR_SUPPLY_VOLTS, MQ7_RL_OHMS, MQ7_R0_OHMS);
@@ -58,20 +57,20 @@ float mq7_estimate_ppm(float rs_ohms) {
     return powf(10.0f, log10ppm);
 }
 
-//Reading
-int mq7_sample(float *ppm_out, float *voltage_out) {
+// Reading
+int mq7_sample(float *p_ppm_out, float *p_voltage_out) {
     
-    //Check for basic errors
-    if (!_mq7_initialized) {
+    // Check for basic errors
+    if (!g_mq7_initialized) {
         return MQ7_STATUS_ENOINIT;
     }
-    if (MQ7_R0_OHMS == 0.0f) {
+    if (0.0f == MQ7_R0_OHMS) {
         return MQ7_STATUS_EINVAL;
     }
     
     // Perform the reading and calculations
     float vadc   = mq7_read_vadc_volts(16);          
-    float vsens  = mq7_backscale_sensor_volts(vadc); 
+    float vsens  = mq7_backscale_sensor_volts(vadc);
     
     // Check for hardware errors after reading
     // EHW check: Now checks against the 5V rail
@@ -98,15 +97,15 @@ int mq7_sample(float *ppm_out, float *voltage_out) {
 
         ppm = filtered_ppm;
     }
-    *ppm_out = ppm;
-    *voltage_out = vadc;
+    *p_ppm_out = ppm;
+    *p_voltage_out = vadc;
            
     return MQ7_STATUS_OK;
 }
 
-mq7_reading mq7_get_payload()
+mq7_reading_t mq7_get_payload()
 {
-    mq7_reading result;
+    mq7_reading_t result;
     float ppm = 0.0f;
     float voltage = 0.0f;
     result.status = mq7_sample(&ppm, &voltage);
