@@ -24,6 +24,7 @@ Files and responsibilities
 - `wifi_driver.c` / `wifi_driver.h` — Wi‑Fi connection helpers (Pico W) used to bring up the network interface.
 - `lwipopts.h` — lwIP configuration header to tune stack options required by MQTT and the application.
 - `secrets.h` — Credentials and network configuration for Wi‑Fi and MQTT (SSID, password, broker address, etc.). Treat this file as local-only and do not commit real credentials to public VCS.
+- `mltrainer.py` - This script performs a complete supervised machine-learning pipeline: it loads your labelled gas-sensor dataset, scales the input features, trains a Multilayer Perceptron (feed-forward neural network) for 3-class safety classification using ReLU hidden layers, softmax output, Adam optimizer, and cross-entropy loss, evaluates the model with accuracy and confusion matrix, and finally converts the trained model into a quantized TensorFlow Lite file and C array for deployment on microcontrollers.
 
 Important notes
 -----------------------------
