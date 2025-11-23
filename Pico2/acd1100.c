@@ -112,32 +112,6 @@ size_t acd1100_format_ppm(char *buf,
     return (size_t)written;
 }
 
-// bool acd1100_read_ppm_string(i2c_inst_t *i2c,
-//                              uint8_t address,
-//                              char *buf,
-//                              size_t buf_len,
-//                              uint32_t *ppm_out,
-//                              uint16_t *temp_raw_out) {
-//     if (!buf || buf_len == 0) {
-//         return false;
-//     }
-
-//     uint32_t ppm_local = 0;
-//     uint16_t temp_local = 0;
-
-//     uint32_t *ppm_target = ppm_out ? ppm_out : &ppm_local;
-//     uint16_t *temp_target = temp_raw_out ? temp_raw_out : &temp_local;
-
-//     bool ok = acd1100_read_measurement(i2c, address, ppm_target, temp_target);
-//     if (!ok) {
-//         buf[0] = '\0';
-//         return false;
-//     }
-
-//     acd1100_format_ppm(buf, buf_len, *ppm_target);
-//     return true;
-// }
-
 acd1100_status_t acd1100_read_ppm_string(
     i2c_inst_t *i2c,
     uint8_t addr,
