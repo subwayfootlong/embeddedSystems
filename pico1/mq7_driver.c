@@ -7,11 +7,11 @@
 
 // --- Initialization Tracking ---
 static bool _mq7_initialized = false;
-// ---- ADC init/read ----
+
 void mq7_init_adc(void) {
     adc_init();
     adc_gpio_init(MQ7_ADC_GPIO);
-    adc_select_input(1); // GP27 = ADC1
+    adc_select_input(1); 
     _mq7_initialized = true;
 
     printf("\n=== MQ-7 Sensor ===\n");
@@ -43,7 +43,7 @@ float mq7_compute_rs_ohms(float vsensor) {
     return MQ7_RL_OHMS * (SENSOR_SUPPLY_VOLTS - vsensor) / vsensor;
 }
 
-// Rough ppm from Rs/R0 using a log-log fit (placeholder constants)
+// Rough ppm from Rs/R0 using a log-log fit
 float mq7_estimate_ppm(float rs_ohms) {
     if (rs_ohms < 1.0f) rs_ohms = 1.0f;
     float ratio = rs_ohms / MQ7_R0_OHMS;
@@ -51,17 +51,17 @@ float mq7_estimate_ppm(float rs_ohms) {
     // Log-log fit: log10(ppm) = A * log10(Rs/R0) + B
     float log10ppm = MQ7_CURVE_A * log10f(ratio) + MQ7_CURVE_B;
     
-    // Clamp to prevent extreme values (optional, clamps to 1,000,000 ppm)
+    // Clamp to prevent extreme values
     if (log10ppm < -6.0f) log10ppm = -6.0f;
     if (log10ppm >  4.0f) log10ppm =  4.0f;
     
     return powf(10.0f, log10ppm);
 }
 
-// --- Reading ---
+//Reading
 int mq7_sample(float *ppm_out, float *voltage_out) {
     
-    // 1. Check for basic errors
+    //Check for basic errors
     if (!_mq7_initialized) {
         return MQ7_STATUS_ENOINIT;
     }
@@ -69,11 +69,11 @@ int mq7_sample(float *ppm_out, float *voltage_out) {
         return MQ7_STATUS_EINVAL;
     }
     
-    // 2. Perform the reading and calculations
-    float vadc   = mq7_read_vadc_volts(16);          // V_ADC (0..5V)
-    float vsens  = mq7_backscale_sensor_volts(vadc); // V_S (Sensor Voltage, 0..5V)
+    // Perform the reading and calculations
+    float vadc   = mq7_read_vadc_volts(16);          
+    float vsens  = mq7_backscale_sensor_volts(vadc); 
     
-    // 3. Check for hardware errors after reading
+    // Check for hardware errors after reading
     // EHW check: Now checks against the 5V rail
     const float rail_tolerance = 0.05f; // 50mV tolerance
     if (vadc < rail_tolerance || vadc > ADC_FULL_SCALE_VOLTS - rail_tolerance) {
@@ -82,6 +82,22 @@ int mq7_sample(float *ppm_out, float *voltage_out) {
     
     float rs     = mq7_compute_rs_ohms(vsens);
     float ppm    = mq7_estimate_ppm(rs);
+    {
+        static float filtered_ppm = 0.0f;
+        const float max_ppm_voltage = ppm;
+
+        filtered_ppm = EMA_ALPHA * ppm + (1.0f - EMA_ALPHA) * filtered_ppm;
+
+        if (filtered_ppm > max_ppm_voltage) {
+            filtered_ppm = max_ppm_voltage;
+        }
+
+        if (filtered_ppm > MQ7_MAX_PPM) {
+            filtered_ppm = MQ7_MAX_PPM;
+        }
+
+        ppm = filtered_ppm;
+    }
     *ppm_out = ppm;
     *voltage_out = vadc;
            

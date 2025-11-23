@@ -8,7 +8,7 @@ extern "C" {
 typedef enum {
     MQ7_STATUS_OK = 0,          // Measurement valid.
     MQ7_STATUS_EINVAL,          // Bad configuration (invalid R0, etc.).
-    MQ7_STATUS_EBUSY,           // Sampling attempted outside LOW phase (Conceptual in 3.3V mode).
+    MQ7_STATUS_EBUSY,           // Sensor not ready (in warmup period).
     MQ7_STATUS_EHW,             // ADC stuck at rail, open/short detected.
     MQ7_STATUS_ENOINIT          // API called before mq7_init.
 } mq7_status_t;
@@ -19,27 +19,25 @@ typedef struct {
     float voltage;
 } mq7_reading;
 
-// -------- Hardware config (5 V, no divider) --------
+// 
 #define MQ7_ADC_GPIO          9
 #define ADC_FULL_SCALE_VOLTS  5.0f
 #define ADC_MAX_COUNT         4095.0f
 
-// No divider (A0 -> GP27 directly)
+// No divider (not used)
 #define DIVIDER_RTOP_OHMS     0.0f
 #define DIVIDER_RBOT_OHMS     1.0f
 
-// Module powered from 5V
+//powered with 5V
 #define SENSOR_SUPPLY_VOLTS   5.0f
 
-// Flying-Fish modules commonly RL ~10k (change if your board differs)
+// load resistance
 #define MQ7_RL_OHMS           10000.0f
 
-// Calibrate: set R0 = Rs in clean air after warm-up (you measure this)
-// !!! CRITICAL: UPDATE THIS VALUE after your 48-hour burn-in.
+// Calibrated baseline resistance in clean air
 #define MQ7_R0_OHMS           118000.0f
 
-// Curve (placeholder): log10(ppm) = A * log10(Rs/R0) + B
-// These placeholders will lead to inaccurate ppm values.
+// Derived values based on graph frrom datasheet
 #define MQ7_CURVE_A          (-1.4754f)  
 #define MQ7_CURVE_B           ( 2.0f) 
 
