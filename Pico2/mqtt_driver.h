@@ -16,6 +16,10 @@ typedef enum {
     MQTT_STATUS_ERROR
 } mqtt_status_t;
 
+#define INTERVAL_NORMAL    30000   // 30 seconds
+#define INTERVAL_WARNING   10000   // 10 seconds
+#define INTERVAL_HIGH       5000   // 5 seconds
+
 // Callback type for incoming messages
 typedef void (*mqtt_message_callback_t)(const char* topic, const char* payload, uint16_t payload_len);
 
@@ -45,5 +49,10 @@ void mqtt_poll(void);
 
 // Setup MQTT and connect to broker
 void setup_mqtt(void);
+
+// Register user callback for inbound messages
+void mqtt_set_callback(mqtt_message_callback_t callback);
+
+void listen_for_mqtt_updates(uint32_t ms);
 
 #endif

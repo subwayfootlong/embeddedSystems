@@ -3,14 +3,35 @@
 #include <stdio.h>
 #include <string.h>
 #include "pico/stdlib.h"
+#include "pico/cyw43_arch.h"
 
 static mqtt_client_t *mqtt_client = NULL;
 static mqtt_status_t mqtt_status = MQTT_STATUS_DISCONNECTED;
 static mqtt_message_callback_t user_callback = NULL;
 
-// Callback for incoming MQTT messages
-void mqtt_message_received(const char* topic, const char* payload, uint16_t payload_len) {
-    printf("Message received: %.*s\n", payload_len, payload);
+// // Callback for incoming MQTT messages
+// void mqtt_message_received(const char* topic, const char* payload, uint16_t payload_len) {
+//     printf("Message received: %.*s\n", payload_len, payload);
+// }
+
+extern volatile int safety_level;
+
+void mqtt_message_received(const char* topic, const char* payload, uint16_t len) {
+    char msg[32];
+    memcpy(msg, payload, len);
+    msg[len] = '\0';
+
+    if (strcmp(msg, "NORMAL") == 0) {
+        safety_level = 0;
+    }
+    else if (strcmp(msg, "WARNING") == 0) {
+        safety_level = 1;
+    }
+    else if (strcmp(msg, "HIGH") == 0) {
+        safety_level = 2;
+    }
+
+    printf("[MQTT] Safety level updated: %s\n", msg);
 }
 
 // MQTT connection callback
@@ -24,25 +45,23 @@ static void mqtt_connection_cb(mqtt_client_t *client, void *arg, mqtt_connection
     }
 }
 
-// MQTT incoming publish callback
 static void mqtt_incoming_publish_cb(void *arg, const char *topic, u32_t tot_len) {
-    printf("Incoming publish on topic: %s (length: %lu)\n", topic, (unsigned long)tot_len);
+    printf("[MQTT] Incoming publish on topic: %s (%lu bytes)\n",
+           topic, (unsigned long)tot_len);
 }
 
-// MQTT incoming data callback
 static void mqtt_incoming_data_cb(void *arg, const u8_t *data, u16_t len, u8_t flags) {
-    // Copy data to temporary buffer
-    char payload[256];
-    if (len < sizeof(payload)) {
-        memcpy(payload, data, len);
-        payload[len] = '\0';
-        
-        if (user_callback) {
-            user_callback("", payload, len);  // Topic already printed in publish_cb
-        }
-        
-        printf("Received: %s\n", payload);
+
+    char payload[64];
+    memcpy(payload, data, len);
+    payload[len] = '\0';
+
+    // ALWAYS call the user callback
+    if (user_callback) {
+        user_callback("", payload, len);
     }
+
+    printf("[MQTT] Payload: %s\n", payload);
 }
 
 // MQTT subscribe callback
@@ -221,4 +240,14 @@ void setup_mqtt(void) {
     }
 
     printf("\n4. MQTT Connected Successfully!\n");
+}
+
+void listen_for_mqtt_updates(uint32_t ms) {
+    uint32_t loops = ms / 50;
+
+    for (uint32_t i = 0; i < loops; i++) {
+        cyw43_arch_poll();
+        mqtt_poll();
+        sleep_ms(50);
+    }
 }

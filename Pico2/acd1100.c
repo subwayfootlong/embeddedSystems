@@ -1,7 +1,10 @@
 #include "acd1100.h"
+#include "mqtt_driver.h"
+#include "EMA_filter.h"
 #include <stdio.h>
 #include "hardware/i2c.h"
 #include "pico/stdlib.h"
+#include "secrets.h"
 
 /*
  * ACD1100 / ACD10 (ASAIR) CO₂ sensor
@@ -109,31 +112,114 @@ size_t acd1100_format_ppm(char *buf,
     return (size_t)written;
 }
 
-bool acd1100_read_ppm_string(i2c_inst_t *i2c,
-                             uint8_t address,
-                             char *buf,
-                             size_t buf_len,
-                             uint32_t *ppm_out,
-                             uint16_t *temp_raw_out) {
-    if (!buf || buf_len == 0) {
-        return false;
+// bool acd1100_read_ppm_string(i2c_inst_t *i2c,
+//                              uint8_t address,
+//                              char *buf,
+//                              size_t buf_len,
+//                              uint32_t *ppm_out,
+//                              uint16_t *temp_raw_out) {
+//     if (!buf || buf_len == 0) {
+//         return false;
+//     }
+
+//     uint32_t ppm_local = 0;
+//     uint16_t temp_local = 0;
+
+//     uint32_t *ppm_target = ppm_out ? ppm_out : &ppm_local;
+//     uint16_t *temp_target = temp_raw_out ? temp_raw_out : &temp_local;
+
+//     bool ok = acd1100_read_measurement(i2c, address, ppm_target, temp_target);
+//     if (!ok) {
+//         buf[0] = '\0';
+//         return false;
+//     }
+
+//     acd1100_format_ppm(buf, buf_len, *ppm_target);
+//     return true;
+// }
+
+acd1100_status_t acd1100_read_ppm_string(
+    i2c_inst_t *i2c,
+    uint8_t addr,
+    char *ppm_str,
+    size_t ppm_str_len,
+    uint32_t *ppm_out,
+    uint16_t *t_raw_out
+) {
+    if (!ppm_str || ppm_str_len == 0)
+        return ACD1100_ERR_INVAL;
+
+    uint8_t buf[9] = {0};
+
+    // ----------------------------
+    // 1. Write command
+    // ----------------------------
+    const uint8_t cmd[2] = {0x03, 0x00};
+    int w = i2c_write_blocking(i2c, addr, cmd, 2, false);
+
+    if (w != 2) {
+        printf("[ACD1100 ERROR] I2C write failed\n");
+        return ACD1100_ERR_I2C;
     }
 
-    uint32_t ppm_local = 0;
-    uint16_t temp_local = 0;
+    sleep_ms(ACD1100_REQUEST_DELAY_MS);
 
-    uint32_t *ppm_target = ppm_out ? ppm_out : &ppm_local;
-    uint16_t *temp_target = temp_raw_out ? temp_raw_out : &temp_local;
-
-    bool ok = acd1100_read_measurement(i2c, address, ppm_target, temp_target);
-    if (!ok) {
-        buf[0] = '\0';
-        return false;
+    // ----------------------------
+    // 2. Read 9-byte frame
+    // ----------------------------
+    int r = i2c_read_blocking(i2c, addr, buf, 9, false);
+    if (r != 9) {
+        printf("[ACD1100 ERROR] Short read: got %d bytes\n", r);
+        return ACD1100_ERR_I2C;
     }
 
-    acd1100_format_ppm(buf, buf_len, *ppm_target);
-    return true;
+    // ----------------------------
+    // 3. CRC checks
+    // ----------------------------
+    const uint8_t ppm_hi[2] = {buf[0], buf[1]};
+    const uint8_t ppm_lo[2] = {buf[3], buf[4]};
+    const uint8_t t_raw_b[2] = {buf[6], buf[7]};
+
+    if (crc8_poly31_initFF(ppm_hi, 2) != buf[2]) {
+        printf("[ACD1100 ERROR] CRC1 mismatch\n");
+        return ACD1100_ERR_CRC;
+    }
+    if (crc8_poly31_initFF(ppm_lo, 2) != buf[5]) {
+        printf("[ACD1100 ERROR] CRC2 mismatch\n");
+        return ACD1100_ERR_CRC;
+    }
+    if (crc8_poly31_initFF(t_raw_b, 2) != buf[8]) {
+        printf("[ACD1100 ERROR] CRC3 mismatch\n");
+        return ACD1100_ERR_CRC;
+    }
+
+    // ----------------------------
+    // 4. Extract PPM
+    // ----------------------------
+    uint32_t ppm =
+        ((uint32_t)buf[0] << 24) |
+        ((uint32_t)buf[1] << 16) |
+        ((uint32_t)buf[3] << 8)  |
+        ((uint32_t)buf[4]);
+
+    if (ppm == 0 || ppm > 50000) {
+        printf("[ACD1100 ERROR] Invalid PPM value: %lu\n", ppm);
+        return ACD1100_ERR_RANGE;
+    }
+
+    uint16_t t_raw = (buf[6] << 8) | buf[7];
+
+    // ----------------------------
+    // 5. Format output string
+    // ----------------------------
+    snprintf(ppm_str, ppm_str_len, "%lu", ppm);
+
+    if (ppm_out)     *ppm_out = ppm;
+    if (t_raw_out)   *t_raw_out = t_raw;
+
+    return ACD1100_OK;
 }
+
 
 void acd1100_init(i2c_inst_t *i2c,
                   uint sda_pin,
@@ -181,3 +267,66 @@ void acd1100_run_loop(i2c_inst_t *i2c,
         sleep_ms(poll_delay_ms);
     }
 }
+
+bool read_and_publish_ppm(void) {
+    uint32_t ppm = 0;
+    uint16_t t_raw = 0;
+    char payload[16];
+
+    acd1100_status_t status = acd1100_read_ppm_string(
+        I2C_PORT,
+        ACD1100_I2C_ADDR,
+        payload,
+        sizeof(payload),
+        &ppm,
+        &t_raw
+    );
+
+    // ------------------------------
+    // Handle error conditions
+    // ------------------------------
+    switch (status) {
+
+        case ACD1100_OK:
+            break;  // success → move on
+
+        case ACD1100_ERR_INVAL:
+            printf("[ACD1100] ERROR: Invalid parameters.\n");
+            return false;
+
+        case ACD1100_ERR_I2C:
+            printf("[ACD1100] ERROR: I2C communication failed.\n");
+            return false;
+
+        case ACD1100_ERR_CRC:
+            printf("[ACD1100] ERROR: CRC mismatch.\n");
+            return false;
+
+        case ACD1100_ERR_RANGE:
+            printf("[ACD1100] ERROR: PPM value out of valid range.\n");
+            return false;
+
+        case ACD1100_ERR_FORMAT:
+            printf("[ACD1100] ERROR: Sensor frame format error.\n");
+            return false;
+
+        default:
+            printf("[ACD1100] ERROR: Unknown error code (%d).\n", status);
+            return false;
+    }
+
+
+    // ---------------------------------------
+    // If OK → apply filter & publish normally
+    // ---------------------------------------
+    float filtered = ema_process((float)ppm);
+
+    printf("CO2: raw=%lu ppm, filtered=%.1f ppm\n",
+           (unsigned long)ppm, filtered);
+
+    snprintf(payload, sizeof(payload), "%.0f", filtered);
+    mqtt_publish_message(TOPIC_CO2, payload, 0, 0);
+
+    return true;
+}
+

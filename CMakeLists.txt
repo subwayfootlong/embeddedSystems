@@ -1,6 +1,9 @@
 cmake_minimum_required(VERSION 3.13)
 include($ENV{PICO_SDK_PATH}/external/pico_sdk_import.cmake)
 
+# Force Pico W so Wi‑Fi/LwIP libraries and headers are available across subprojects.
+set(PICO_BOARD pico_w CACHE STRING "Board type" FORCE)
+
 project(PicoProjects C CXX ASM)
 
 # Initialize Pico SDK

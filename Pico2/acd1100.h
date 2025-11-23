@@ -31,8 +31,16 @@
 #define I2C_FREQ_HZ        100000 // 100 kHz
 #define ACD1100_I2C_ADDR   0x2A
 
-
 #define ACD1100_PIN_DEFAULT ((uint)(-1))
+
+typedef enum {
+    ACD1100_OK          = 0,
+    ACD1100_ERR_INVAL   = -1,
+    ACD1100_ERR_I2C     = -2,
+    ACD1100_ERR_CRC     = -3,
+    ACD1100_ERR_RANGE   = -4,
+    ACD1100_ERR_FORMAT  = -5
+} acd1100_status_t;
 
 bool acd1100_read_measurement(i2c_inst_t *i2c,
                               uint8_t address,
@@ -43,12 +51,14 @@ size_t acd1100_format_ppm(char *buf,
                           size_t buf_len,
                           uint32_t ppm);
 
-bool acd1100_read_ppm_string(i2c_inst_t *i2c,
-                             uint8_t address,
-                             char *buf,
-                             size_t buf_len,
-                             uint32_t *ppm_out,
-                             uint16_t *temp_raw_out);
+acd1100_status_t acd1100_read_ppm_string(
+    i2c_inst_t *i2c,
+    uint8_t address,
+    char *ppm_str,
+    size_t ppm_str_len,
+    uint32_t *ppm_out,
+    uint16_t *t_raw_out
+);
 
 void acd1100_init(i2c_inst_t *i2c,
                   uint sda_pin,
@@ -58,5 +68,7 @@ void acd1100_init(i2c_inst_t *i2c,
 void acd1100_run_loop(i2c_inst_t *i2c,
                       uint8_t address,
                       uint32_t print_interval_ms);
+
+bool read_and_publish_ppm(void);
 
 #endif
