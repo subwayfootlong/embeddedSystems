@@ -13,9 +13,7 @@ endif()
 
 # Add individual projects
 if(NOT PICO_NO_HARDWARE)
-    add_subdirectory(demoSD)
-    add_subdirectory(demoWiFi)
-    add_subdirectory(demoMQTT)
+    add_subdirectory(Pico1)
     add_subdirectory(Pico2)
     add_subdirectory(Pico3)
     add_subdirectory(Pico4)
