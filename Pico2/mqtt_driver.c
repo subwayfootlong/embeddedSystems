@@ -9,11 +9,6 @@ static mqtt_client_t *mqtt_client = NULL;
 static mqtt_status_t mqtt_status = MQTT_STATUS_DISCONNECTED;
 static mqtt_message_callback_t user_callback = NULL;
 
-// // Callback for incoming MQTT messages
-// void mqtt_message_received(const char* topic, const char* payload, uint16_t payload_len) {
-//     printf("Message received: %.*s\n", payload_len, payload);
-// }
-
 extern volatile int safety_level;
 
 void mqtt_message_received(const char* topic, const char* payload, uint16_t len) {
