@@ -92,7 +92,7 @@ Configured in firmware:
 ema_init(0.25f);
 ```
 
-### **MQTT Cloud Integration**
+### **MQTT Integration**
 
 * Publishes filtered CO₂ PPM → `topic/co2`
 * Subscribes to safety level → adjusts sampling rate
@@ -100,7 +100,7 @@ ema_init(0.25f);
 
 ### **Dynamic Power Modes**
 
-* **Normal mode** → sleeps (5–10 minutes) with WiFi OFF
+* **Normal mode** → sleeps (5 minutes) with WiFi OFF
 * **Warning / High** → stays awake, samples more frequently
 * CPU clock scaling supported (48 MHz low-power mode)
 
@@ -178,31 +178,6 @@ If an error occurs:
 
 ---
 
-## **Testing & Validation**
-
-### **Sensor Simulation Tests**
-
-| Test                    | Expected Result      |
-| ----------------------- | -------------------- |
-| Unplug sensor           | `ACD1100_ERR_I2C`    |
-| Force invalid header    | `ACD1100_ERR_FORMAT` |
-| Modify CRC byte         | `ACD1100_ERR_CRC`    |
-| Cover vent to raise CO₂ | Increased PPM values |
-| Apply EMA α=0.1         | Heavy smoothing      |
-| Apply EMA α=0.8         | Fast response        |
-
-### **MQTT Tests**
-
-* Verify messages on: `mosquitto_sub -t topic/co2`
-* Send safety-level commands to topic → pico adjusts interval
-
-### **Power Mode Tests**
-
-* Measure USB current using Keweisi meter
-* WiFi disconnect → current should drop by ~30–50 mA
-
----
-
 ## **Known Issues**
 
 * ACD1100 warm-up may take several seconds
@@ -219,3 +194,4 @@ If an error occurs:
 * Support OTA firmware update
 
 ---
+
