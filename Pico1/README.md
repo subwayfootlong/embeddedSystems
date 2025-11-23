@@ -97,3 +97,42 @@ Pico1/
 ```
 
 ---
+
+## **Build Instructions**
+
+### **1. Install Pico SDK**
+
+Follow Raspberry Pi’s official documentation or use `pico-setup.sh`.
+
+### **2. Configure Build**
+
+```
+mkdir build
+cd build
+cmake ..
+```
+
+### **3. Compile**
+
+```
+make -j4
+```
+
+### **4. Flash to Pico W**
+
+Hold BOOTSEL → connect USB → copy `.uf2` file.
+
+## **5. Running the Node**
+
+Open the Serial Monitor.
+
+Expected startup sequence:
+
+```
+1. Connecting to WiFi...
+2. Initializing MQTT...
+3. Subscribing: pico4/prediction
+4. ...
+```
+
+---
