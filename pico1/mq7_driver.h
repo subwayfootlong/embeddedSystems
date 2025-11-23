@@ -19,10 +19,11 @@ typedef struct {
     float voltage;
 } mq7_reading;
 
-// 
 #define MQ7_ADC_GPIO          9
 #define ADC_FULL_SCALE_VOLTS  5.0f
 #define ADC_MAX_COUNT         4095.0f
+#define EMA_ALPHA (0.1f)
+#define MQ7_MAX_PPM          10000.0f 
 
 // No divider (not used)
 #define DIVIDER_RTOP_OHMS     0.0f
